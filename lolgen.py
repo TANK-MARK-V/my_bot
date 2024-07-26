@@ -1,8 +1,5 @@
 import random as rn
 import pymorphy3
-
-import sys
-import io
 import sqlite3
 
 
@@ -39,18 +36,13 @@ def getting():  # Функция для считывания слов из БД
     return commands
 
 
-commands = getting()
-
-
 def taking(order):  # Выбор случайных слов
-    global commands
     commands = getting()
-    ad = [rn.choice(commands[slovo]) if slovo in commands else slovo for slovo in
-          order.split()]
-    return ad
+    return [rn.choice(commands[slovo]) if slovo in commands else slovo for slovo in order.split()]
 
 
-def sc(word, padej='nomn', pol='masc', odu='inan', dont=0):  # Функция для склонения слов
+def changing(word, padej='nomn', pol='masc', odu='inan', dont=0):  # Функция для склонения слов
+    commands = getting()
     prs = morph.parse(word)[0]
     if word in commands['сущ']:
         return prs.inflect({'sing', padej}).word
@@ -75,7 +67,6 @@ def brain(order):  # Изначально lolgen был этой функцие�
     padej = 'nomn'
     odu = 'inan'
     flag_s = 0
-    global commands
     commands = getting()
     sus = commands['сущ']
     pril = commands['прил']
@@ -86,11 +77,11 @@ def brain(order):  # Изначально lolgen был этой функцие�
     for i in range(len(ad)):  # Цикл, проходящий по всем словам, и склоняющий их
         if ad[i] in glag:
             if flag_s == 1:
-                ad[i] = sc('который', pol=pol, dont=1) + ' ' + sc(ad[i], pol=pol)
+                ad[i] = changing('который', pol=pol, dont=1) + ' ' + changing(ad[i], pol=pol)
                 ad[i - 1] += ','  # Добавление слова "который" если до этого идёт существительное
             padej = 'accs'
         elif ad[i] in sus:
-            ad[i] = sc(ad[i], padej)
+            ad[i] = changing(ad[i], padej)
             pol = morph.parse(ad[i])[0].tag.gender
             odu = morph.parse(ad[i])[0].tag.animacy  # Следующие слова будут зависимы от этого
             flag_s = 1
@@ -101,11 +92,11 @@ def brain(order):  # Изначально lolgen был этой функцие�
                     odu = morph.parse(ad[j])[0].tag.animacy
                     break
                     # Получение признаков существительного для склонения прилагательного, которое стоит до
-            ad[i] = sc(ad[i], padej, pol, odu)
+            ad[i] = changing(ad[i], padej, pol, odu)
     return ' '.join(ad).capitalize()
 
 
-def trying(word, speech):  # Проверка на то, подхордит ли новое слово под критерии (по сути просто смесь brain() и sc())
+def trying(word, speech):  # Проверка на то, подхордит ли новое слово под критерии
     pol = 'masc'
     padej = 'accs'
     odu = 'inan'
@@ -135,3 +126,23 @@ def trying(word, speech):  # Проверка на то, подхордит ли
             except Exception:
                 return True
     return False
+
+
+def adding(word, speech):
+        commands = getting()
+        con = sqlite3.connect("DataBase.sqlite")
+        cur = con.cursor()
+        dct = {"прил": (1, commands['прил'], 'ADJF'), "сущ": (2, commands['сущ'], 'NOUN'), "глаг": (3, commands['глаг'], 'VERB')}
+        
+        if word.lower() in dct[speech][1]:  # Критерии добавления слов
+            return 'Слово уже есть в базе данных'
+        if dct[speech][2] not in morph.parse(word)[0].tag.POS:
+            return 'Неккоректно указана часть речи'
+        if trying(word, dct[speech][2]):
+            return 'Слово не подходит по критериям'
+        
+        cur.execute("INSERT INTO Massive(word, part, standart) VALUES(?, ?, 1)",
+                    (word.lower(), dct[speech][0])).fetchall()
+        con.commit()
+        con.close()
+        return 'Слово было успешно добавлено'
