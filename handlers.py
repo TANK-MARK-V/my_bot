@@ -2,6 +2,7 @@ from aiogram import types, F, Router
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 from lolgen import brain, adding
+from STI import sti
 
 
 router = Router()
@@ -20,12 +21,14 @@ async def lolgening(msg: Message, command: CommandObject):
     else:
         try:
             order = last_message[msg.from_user.id]
-        except Exception:
+        except Exception as e:
+            print(e)
             await msg.reply("Необходимо передать схему предложения хотя бы раз")
             return None
     try:
         text = brain(order=order)
-    except Exception:
+    except Exception as e:
+        print(e)
         await msg.reply("Что-то пошло не так")
         return None
     await msg.reply(text)
@@ -40,6 +43,21 @@ async def adding_word(msg: Message, command: CommandObject):
         await msg.reply('Нужно ввести только одно слово и его часть речи через пробел, например "/word огурец сущ"')
         return None
     await msg.reply(adding(leest[0], leest[1]))
+
+
+@router.message(Command("sti"))
+async def adding_word(msg: Message, command: CommandObject):
+    if not command.args:
+        await msg.reply("Нужно ввести пример в скобках и нужное значение (если не указать, то таблица нужна целиком) через нижнее подчёркивание")
+        return None
+    leest = command.args.split('_')
+    try:
+        out = sti(*leest)
+    except Exception as e:
+        print(e)
+        await msg.reply("Что-то пошло не так")
+        return None
+    await msg.reply(out)
 
 
 @router.message()
