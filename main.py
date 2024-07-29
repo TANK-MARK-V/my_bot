@@ -7,13 +7,15 @@ from aiogram.client.default import DefaultBotProperties
 
 import config
 from handlers import router
+from lolgen import router_lolgen
+from STI import router_sti
 
 
 async def main():
     print("Старт")
     bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
-    dp.include_router(router)
+    dp.include_routers(router_lolgen, router_sti, router)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 

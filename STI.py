@@ -1,6 +1,11 @@
+from aiogram import Router
+from aiogram.types import Message
+from aiogram.filters import Command, CommandObject
+
 PORYADOK = ["первое", "второе", "третье", "четвёртое", "пятое", "шестое", "седьмое", "восьмое", "девятое"]
 DO = dict()
 PRIMER = ''
+router_sti = Router()
 
 
 def making():
@@ -110,3 +115,21 @@ def sti(primer, only=''):
                 if not need_smth or (need_smth and int(sleest[-1]) == need):
                     out += f"{x} {y}  {' '.join(sleest)}\n"
     return out
+
+
+@router_sti.message(Command("sti"))
+async def adding_word(msg: Message, command: CommandObject):
+    if not command.args:
+        await msg.reply("Нужно ввести логическое выражение в скобках")
+        return None
+    leest = command.args.split('_')
+    if leest[0][0] + leest[0][-1] != "()":
+        await msg.reply("Логическое выражение должно быть в скобках")
+        return None
+    try:
+        out = sti(*leest)
+    except Exception as e:
+        print('ОШИБКА -', e)
+        await msg.reply("Что-то пошло не так")
+        return None
+    await msg.reply(out)

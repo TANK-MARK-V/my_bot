@@ -2,11 +2,14 @@ import random as rn
 import pymorphy3
 import sqlite3
 
+from aiogram import Router
+from aiogram.types import Message
+from aiogram.filters import Command, CommandObject
 
-# Импортируем нужные библиотеки
 
-morph = pymorphy3.MorphAnalyzer()  # Создаём представитель класса pymorthy для анализа и склонения слов
-
+morph = pymorphy3.MorphAnalyzer()
+router_lolgen = Router()
+last_message = {}
 
 def getting():  # Функция для считывания слов из БД
     con = sqlite3.connect("DataBase.sqlite")
@@ -146,3 +149,38 @@ def adding(word, speech):
         con.commit()
         con.close()
         return 'Слово было успешно добавлено'
+
+
+@router_lolgen.message(Command("lolgen"))
+async def lolgening(msg: Message, command: CommandObject):
+    if command.args:
+        order = command.args
+        last_message[msg.from_user.id] = order
+    else:
+        try:
+            order = last_message[msg.from_user.id]
+        except Exception as e:
+            await msg.reply("Необходимо передать схему предложения хотя бы раз")
+            return None
+    try:
+        text = brain(order=order)
+    except Exception as e:
+        print('ОШИБКА -', e)
+        await msg.reply("Что-то пошло не так")
+        return None
+    if len(last_message) == 2:
+        with open('two.txt', 'w') as file:
+            file.write('Не менее двух')
+    await msg.reply(text)
+
+
+@router_lolgen.message(Command("word"))
+async def adding_word(msg: Message, command: CommandObject):
+    if not command.args:
+        await msg.reply("Нужно ввести слово и его часть речи")
+        return None
+    leest = command.args.split(' ')
+    if len(leest) != 2:
+        await msg.reply('Нужно ввести только одно слово и его часть речи')
+        return None
+    await msg.reply(adding(leest[0], leest[1]))
