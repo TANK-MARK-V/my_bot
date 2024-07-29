@@ -119,8 +119,24 @@ def sti(primer, only=''):
     return out
 
 
+def bracket_check(test_string):
+    open = ('(', '{', '[', '《')
+    closed = (')', '}', ']', '》')
+    leest = list()
+    for sym in test_string:
+        if sym in open:
+            leest.append(sym)
+        elif sym in closed:
+            if len(leest) == 0:
+                return False
+            elif open[closed.index(sym)] == leest[len(leest) - 1]:
+                leest.remove(open[closed.index(sym)])
+    if len(leest) != 0:
+        return False
+    return True
+
 @router_sti.message(Command("sti"))
-async def adding_word(msg: Message, command: CommandObject):
+async def solving(msg: Message, command: CommandObject):
     if not command.args:
         log(msg, ('Комманда /sti не получила аргументов',))
         await msg.reply("Нужно ввести логическое выражение в скобках")
@@ -129,6 +145,10 @@ async def adding_word(msg: Message, command: CommandObject):
     if leest[0][0] + leest[0][-1] != "()":
         log(msg, ('Комманда /sti получила логическое выражение без скобок:', command.args))
         await msg.reply("Логическое выражение должно быть в скобках")
+        return None
+    if not bracket_check(leest[0]):
+        log(msg, ('Комманда /sti получила логическое выражение, в котором не все скобки закрыты:', command.args))
+        await msg.reply("Все скобки логического выражения должны быть закрыты")
         return None
     try:
         out = sti(*leest)

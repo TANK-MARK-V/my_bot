@@ -43,7 +43,7 @@ async def send_info(callback: types.CallbackQuery):
 #                                                                               Инструменты админа
 @router.message(Command("admin"))
 async def admin(msg: Message, command: CommandObject):
-    nope = '' if (str(msg.from_user.id), msg.from_user.full_name, msg.from_user.username) in ADMIN else 'не '
+    nope = '' if (str(msg.from_user.id), msg.from_user.username) in ADMIN else 'не '
     if not command.args:
         log(msg, (f'Пользователь {nope}обладает правами администратора', ))
         await msg.reply(f"Вы {nope}обладаете правами администратора")

@@ -138,10 +138,13 @@ def adding(word, speech):
         cur = con.cursor()
         dct = {"прил": (1, commands['прил'], 'ADJF'), "сущ": (2, commands['сущ'], 'NOUN'), "глаг": (3, commands['глаг'], 'VERB')}
         
-        if word.lower() in dct[speech][1]:  # Критерии добавления слов
-            return 'Слово уже есть в базе данных'
-        if speech not in dct.keys() or dct[speech][2] not in morph.parse(word)[0].tag.POS:
+        pos = morph.parse(word)[0].tag.POS
+        if not pos:
+            return 'Введено неккоректное слово'
+        if speech not in dct.keys() or dct[speech][2] != pos:
             return 'Неккоректно указана часть речи'
+        if word.lower() in dct[speech][1]:
+            return 'Слово уже есть в базе данных'
         if trying(word, dct[speech][2]):
             return 'Слово не подходит по критериям'
         
@@ -153,28 +156,33 @@ def adding(word, speech):
 
 
 @router_lolgen.message(Command("lolgen"))
-async def lolgening(msg: Message, command: CommandObject):
-    if command.args:
-        order = command.args
-        last_message[msg.from_user.id] = order
-    else:
+async def do_lol(msg: Message, command: CommandObject):
+    args = command.args if command.args else ''
+    if '<' in args:
+        args = args.replace('<', '')
+    if '>' in args:
+        args = args.replace('>', '')
+    if not args:
         try:
-            order = last_message[msg.from_user.id]
+            args = last_message[msg.from_user.id]
         except Exception as e:
             log(msg, ('Комманда /lolgen не получила схему',))
             await msg.reply("Необходимо передать схему предложения хотя бы раз")
             return None
+    else:
+        last_message[msg.from_user.id] = args
     try:
-        text = brain(order=order)
+        text = brain(order=args)
     except Exception as e:
-        log(msg, ('Комманда /lolgen:', f'ОШИБКА - {e}, запрос - {order}'), error=True)
+        log(msg, ('Комманда /lolgen:', f'ОШИБКА - {e}, запрос - {args}'), error=True)
         await msg.reply("Что-то пошло не так")
         return None
     if len(last_message) == 2:
         with open('two.txt', 'w') as file:
             file.write('Не менее двух')
-    log(msg, ('Комманда /lolgen выполнила свою работу',))
+    log(msg, ('Комманда /lolgen выполнила свою работу:', text))
     await msg.reply(text)
+
 
 
 @router_lolgen.message(Command("word"))

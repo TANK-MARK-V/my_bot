@@ -13,6 +13,7 @@ def make_way(msg, folder):
     return way
 
 def do_log(msg, text, error=False):
+    print(msg.from_user.username, msg.from_user.id)
     folder = 'errors' if error else 'logs'
     time = datetime.datetime.now().strftime("%H.%M.%S")
     print(f'______{time}____________{folder}______')
