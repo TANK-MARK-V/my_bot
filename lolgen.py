@@ -6,6 +6,7 @@ from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 
+from logs import do_log as log
 
 morph = pymorphy3.MorphAnalyzer()
 router_lolgen = Router()
@@ -139,7 +140,7 @@ def adding(word, speech):
         
         if word.lower() in dct[speech][1]:  # Критерии добавления слов
             return 'Слово уже есть в базе данных'
-        if dct[speech][2] not in morph.parse(word)[0].tag.POS:
+        if speech not in dct.keys() or dct[speech][2] not in morph.parse(word)[0].tag.POS:
             return 'Неккоректно указана часть речи'
         if trying(word, dct[speech][2]):
             return 'Слово не подходит по критериям'
@@ -160,27 +161,33 @@ async def lolgening(msg: Message, command: CommandObject):
         try:
             order = last_message[msg.from_user.id]
         except Exception as e:
+            log(msg, ('Комманда /lolgen не получила схему',))
             await msg.reply("Необходимо передать схему предложения хотя бы раз")
             return None
     try:
         text = brain(order=order)
     except Exception as e:
-        print('ОШИБКА -', e)
+        log(msg, ('Комманда /lolgen:', f'ОШИБКА - {e}, запрос - {order}'), error=True)
         await msg.reply("Что-то пошло не так")
         return None
     if len(last_message) == 2:
         with open('two.txt', 'w') as file:
             file.write('Не менее двух')
+    log(msg, ('Комманда /lolgen выполнила свою работу',))
     await msg.reply(text)
 
 
 @router_lolgen.message(Command("word"))
 async def adding_word(msg: Message, command: CommandObject):
     if not command.args:
+        log(msg, ('Комманда /word не получила аргументов',))
         await msg.reply("Нужно ввести слово и его часть речи")
         return None
     leest = command.args.split(' ')
     if len(leest) != 2:
+        log(msg, ('Комманда /word получила не 2 аргумента:', command.args))
         await msg.reply('Нужно ввести только одно слово и его часть речи')
         return None
+    result = adding(leest[0], leest[1])
+    log(msg, ('Комманда /word выполнила свою работу с результатом:', result, command.args))
     await msg.reply(adding(leest[0], leest[1]))

@@ -12,7 +12,7 @@ from STI import router_sti
 
 
 async def main():
-    print("Старт")
+    print("Старт\n")
     bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_routers(router_lolgen, router_sti, router)

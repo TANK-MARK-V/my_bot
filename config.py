@@ -26,6 +26,13 @@ COMMANDS = {
 }
 
 
+"""
+info - Подробное описание всех комманд
+lolgen - Предложение из случайных слов
+word - Добавить слово, указав его часть речи
+sti - Заполнить таблицу истинности
+"""
+
 def info(command):
     global COMMANDS
     return '\n'.join(COMMANDS[command])

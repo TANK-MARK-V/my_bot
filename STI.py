@@ -2,6 +2,8 @@ from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 
+from logs import do_log as log
+
 PORYADOK = ["первое", "второе", "третье", "четвёртое", "пятое", "шестое", "седьмое", "восьмое", "девятое"]
 DO = dict()
 PRIMER = ''
@@ -120,16 +122,19 @@ def sti(primer, only=''):
 @router_sti.message(Command("sti"))
 async def adding_word(msg: Message, command: CommandObject):
     if not command.args:
+        log(msg, ('Комманда /sti не получила аргументов',))
         await msg.reply("Нужно ввести логическое выражение в скобках")
         return None
     leest = command.args.split('_')
     if leest[0][0] + leest[0][-1] != "()":
+        log(msg, ('Комманда /sti получила логическое выражение без скобок:', command.args))
         await msg.reply("Логическое выражение должно быть в скобках")
         return None
     try:
         out = sti(*leest)
     except Exception as e:
-        print('ОШИБКА -', e)
+        log(msg, ('Комманда /sti:', f'ОШИБКА - {e}, запрос - {command.args}'), error=True)
         await msg.reply("Что-то пошло не так")
         return None
+    log(msg, ('Комманда /sti выполнила свою работу:', command.args))
     await msg.reply(out)

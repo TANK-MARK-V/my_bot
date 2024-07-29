@@ -2,21 +2,26 @@ from aiogram import types, F, Router
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from config import COMMANDS, info
+from logs import do_log as log
 
 router = Router()
 
 #                                                                                   Старт
 @router.message(Command("start"))
 async def start_handler(msg: Message):
+    log(msg, ('Комманда /start',))
     await msg.answer('Чтобы узнать, что я умею используй "/info"')
 
 #                                                                           Информация о коммандах
 @router.message(Command("info"))
 async def information(msg: Message, command: CommandObject):
-    if command.args and command.args.replace(' ', '') in COMMANDS['_names_']:
+    if command.args and command.args in COMMANDS['_names_']:
+        log(msg, (f'Комманда /info {command.args}',))
         await msg.reply(info(command=command.args))
         return None
+    log(msg, ('Комманда /info',))
     builder = InlineKeyboardBuilder()
     for command in COMMANDS["_names_"]:
         builder.add(types.InlineKeyboardButton(
@@ -28,6 +33,7 @@ async def information(msg: Message, command: CommandObject):
 
 @router.callback_query(F.data.startswith("command_"))
 async def send_info(callback: types.CallbackQuery):
+    log(callback, (f'Выбран вариант {callback.data}',))
     await callback.message.answer(info(callback.data.replace("command_", '')))
     await callback.answer()
 
@@ -35,4 +41,5 @@ async def send_info(callback: types.CallbackQuery):
 #                                                                               Всё остальное
 @router.message()
 async def message_handler(msg: Message):
-    await msg.answer(f"Твой ID: {msg.from_user.id}")
+    log(msg, ('Пустое сообщение:', msg.text))
+    await msg.answer(f"Твой ID, имя, фамилия и username: {msg.from_user.id}, {msg.from_user.full_name}, {msg.from_user.username},")
