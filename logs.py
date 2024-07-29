@@ -6,6 +6,8 @@ me = ('5091023477', 'Марк Дворников', 'markusha_v3')
 def make_way(msg, folder):
     date = datetime.datetime.now().strftime("%d.%m-%y")
     way = path.join(folder, str(msg.from_user.id))
+    if not path.isdir(folder):
+        mkdir(folder)
     if not path.isdir(way):
         mkdir(path.join(folder, str(msg.from_user.id)))
     way = path.join(way, date)
