@@ -1,7 +1,6 @@
 from os import path, mkdir
 import datetime
 
-me = ('5091023477', 'Марк Дворников', 'markusha_v3')
 
 def make_way(msg, folder):
     date = datetime.datetime.now().strftime("%d.%m-%y")

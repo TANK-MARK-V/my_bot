@@ -3,8 +3,11 @@ from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import COMMANDS, info
+from config import COMMANDS, ADMIN, info
 from logs import do_log as log
+
+from os import path
+import datetime
 
 router = Router()
 
@@ -37,6 +40,30 @@ async def send_info(callback: types.CallbackQuery):
     await callback.message.answer(info(callback.data.replace("command_", '')))
     await callback.answer()
 
+#                                                                               Инструменты админа
+@router.message(Command("admin"))
+async def admin(msg: Message, command: CommandObject):
+    nope = '' if (str(msg.from_user.id), msg.from_user.full_name, msg.from_user.username) in ADMIN else 'не '
+    if not command.args:
+        log(msg, (f'Пользователь {nope}обладает правами администратора', ))
+        await msg.reply(f"Вы {nope}обладаете правами администратора")
+        return None
+    if not nope:
+        args = command.args.split('_')
+        if args[0] in ('logs', 'errors'):
+            if len(args) == 2:
+                args.append(datetime.datetime.now().strftime("%d.%m-%y"))
+            if len(args) == 3:
+                if '-' not in args[2]:
+                    args[2] += '-' + str(datetime.datetime.now().strftime("%y"))
+            way = f"{path.join(*args)}.txt"
+            if not path.isfile(way):
+                log(msg, (f'Комманда /admin {args[0]}:', f'файл не найден - {way}'))
+                await msg.reply('Файл не найден')
+                return None
+            log(msg, (f'Комманда /admin {args[0]}:', f'файл найден - {way}'))
+            with open(way, 'r', encoding='UTF-8') as file:
+                await msg.reply(''.join(file.readlines()))
 
 #                                                                               Всё остальное
 @router.message()

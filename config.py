@@ -1,4 +1,7 @@
 BOT_TOKEN = "6966599649:AAFvCukCMGCOLc_U1nQ95ksCuqeIJ6yVOCw"
+ADMIN = (('5091023477', 'Марк Дворников', 'markusha_v3'),)
+
+
 
 COMMANDS = {
     "_names_": ["lolgen", "word", "sti"],
