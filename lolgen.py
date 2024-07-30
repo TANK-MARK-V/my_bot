@@ -15,28 +15,19 @@ last_message = {}
 def getting():  # Функция для считывания слов из БД
     con = sqlite3.connect("DataBase.sqlite")
     cur = con.cursor()
-    pril = cur.execute('''SELECT word FROM Massive
-                                  WHERE part in (
-                                      SELECT id FROM Part
-                                          WHERE speech = 'прил') AND standart in (
-                                              SELECT num FROM test)''').fetchall()
-    sus = cur.execute('''SELECT word FROM Massive
-                                 WHERE part in (
-                                     SELECT id FROM Part
-                                         WHERE speech = 'сущ') AND standart in (
-                                             SELECT num FROM test)''').fetchall()
-    glag = cur.execute('''SELECT word FROM Massive
-                                  WHERE part in (
-                                      SELECT id FROM Part
-                                          WHERE speech = 'глаг') AND standart in (
-                                              SELECT num FROM test)''').fetchall()
-    con.commit()
-    con.close()
+    pril = cur.execute("""SELECT word FROM words
+                                  WHERE part = 'прил'""").fetchall()
+    sus = cur.execute("""SELECT word FROM words
+                                  WHERE part = 'сущ'""").fetchall()
+    glag = cur.execute("""SELECT word FROM words
+                                  WHERE part = 'глаг'""").fetchall()
     commands = {
         'сущ': [i[0] for i in sus],
         'прил': [i[0] for i in pril],
         'глаг': [i[0] for i in glag]
     }
+    con.commit()
+    con.close()
     return commands
 
 
@@ -134,10 +125,7 @@ def trying(word, speech):  # Проверка на то, подхордит ли
 
 def adding(word, speech):
         commands = getting()
-        con = sqlite3.connect("DataBase.sqlite")
-        cur = con.cursor()
-        dct = {"прил": (1, commands['прил'], 'ADJF'), "сущ": (2, commands['сущ'], 'NOUN'), "глаг": (3, commands['глаг'], 'VERB')}
-        
+        dct = {"прил": (1, commands['прил'], 'ADJF', "прил"), "сущ": (2, commands['сущ'], 'NOUN', "сущ"), "глаг": (3, commands['глаг'], 'VERB', "глаг")}
         pos = morph.parse(word)[0].tag.POS
         if not pos:
             return 'Введено неккоректное слово'
@@ -148,8 +136,10 @@ def adding(word, speech):
         if trying(word, dct[speech][2]):
             return 'Слово не подходит по критериям'
         
-        cur.execute("INSERT INTO Massive(word, part, standart) VALUES(?, ?, 1)",
-                    (word.lower(), dct[speech][0])).fetchall()
+        con = sqlite3.connect("DataBase.sqlite")
+        cur = con.cursor()
+        cur.execute("INSERT INTO words(word, part) VALUES(?, ?)",
+                    (word.lower(), dct[speech][3])).fetchall()
         con.commit()
         con.close()
         return 'Слово было успешно добавлено'
