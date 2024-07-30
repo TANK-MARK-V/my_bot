@@ -198,4 +198,4 @@ async def adding_word(msg: Message, command: CommandObject):
         return None
     result = adding(leest[0], leest[1])
     log(msg, ('Комманда /word выполнила свою работу с результатом:', result, command.args))
-    await msg.reply(adding(leest[0], leest[1]))
+    await msg.reply(result)
