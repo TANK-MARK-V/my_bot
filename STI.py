@@ -46,6 +46,24 @@ def making():
                 break
 
 
+def changing(value):  # Автоматически заменяет знаки
+    new_value = value
+    dct = {
+        ' and ': (' и ', ' ∧ '),
+        ' or ': (' или ', ' ∨ '),
+        ' == ': (' = ', ' ≡ ')
+    }
+    for put, take in dct.items():
+        for get in take:
+            new_value = new_value.replace(get, put) if get in new_value else new_value
+    if ' -> ' in new_value:
+        new_value = new_value.split(' -> ')
+        new_value = f'not {new_value[0]} or {new_value[1]}'
+    if ' → ' in new_value:
+        new_value = new_value.split(' → ')
+        new_value = f'not {new_value[0]} or {new_value[1]}'
+    return new_value
+
 def preps(rest, dct, value):
     new_value = value
     for tri in dct.keys():  # Заменяет предыдущие действия на их результат
@@ -54,15 +72,7 @@ def preps(rest, dct, value):
     for letter in rest.keys():  # Заменяет переменные на их значения
         if letter in str(new_value):
             new_value = str(new_value).replace(letter, str(rest[letter]))
-    # Кусок кода, который мог облегчить мой прошлый урок (автоматические заменяет импликацию, "или" и "и")
-    if 'или' in new_value:
-        new_value = str(new_value).replace('или', 'or')
-    if 'и' in new_value:
-        new_value = str(new_value).replace('и', 'and')
-    if '->' in new_value:
-        new_value = new_value.split(' -> ')
-        new_value = f'not {new_value[0]} or {new_value[1]}'
-    return new_value
+    return changing(new_value)
 
 
 def count(do, **rest):  # Вычисления
@@ -79,7 +89,7 @@ def sti(primer, only=''):
     global DO
     global PRIMER
     DO = dict()
-    PRIMER = primer
+    PRIMER = '(' + primer.lower() + ')'
     num_of_perem = 0
     if 'x' in PRIMER:
         num_of_perem += 1
@@ -135,17 +145,14 @@ def bracket_check(test_string):
         return False
     return True
 
+
 @router_sti.message(Command("sti"))
 async def solving(msg: Message, command: CommandObject):
     if not command.args:
         log(msg, ('Комманда /sti не получила аргументов',))
-        await msg.reply("Нужно ввести логическое выражение в скобках")
+        await msg.reply("Нужно ввести логическое выражение")
         return None
     leest = command.args.split('_')
-    if leest[0][0] + leest[0][-1] != "()":
-        log(msg, ('Комманда /sti получила логическое выражение без скобок:', command.args))
-        await msg.reply("Логическое выражение должно быть в скобках")
-        return None
     if not bracket_check(leest[0]):
         log(msg, ('Комманда /sti получила логическое выражение, в котором не все скобки закрыты:', command.args))
         await msg.reply("Все скобки логического выражения должны быть закрыты")
