@@ -67,10 +67,10 @@ async def admin(msg: Message, command: CommandObject):
     if args[0] in ('logs', 'errors'):  # Получить логи
         if user[2] < 1:
             log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен 1', ))
-            await msg.reply(f"Вы не обладаете нунжными правами администратора")
+            await msg.reply(f"Вы не обладаете нужными правами администратора")
             return None
         if len(args) == 1:
-            log(msg, (f'Пользователь некорректно ввёл команду:', command.args))
+            log(msg, (f'/admin - пользователь некорректно ввёл команду:', command.args))
             await msg.reply(f"Некорректно введена комманда")
             return None
         try:
@@ -80,8 +80,11 @@ async def admin(msg: Message, command: CommandObject):
             log(msg, (f'Пользователь некорректно ввёл информацию о пользователе:', command.args))
             await msg.reply(f"Некорректно введена информация о пользователе")
             return None
-        if user:
-            args[1] = user[0]
+        if not user:
+            log(msg, (f'/admin - Искомый пользователь не существует:', command.args))
+            await msg.reply(f"Такого пользователя не существует")
+            return None
+        args[1] = user[0]
         if len(args) == 2:
             args.append(datetime.datetime.now().strftime("%d.%m-%y"))
         if len(args) == 3:
@@ -95,14 +98,6 @@ async def admin(msg: Message, command: CommandObject):
         log(msg, (f'Комманда /admin {args[0]}:', f'файл найден - {way}'))
         text = FSInputFile(way)
         await msg.reply_document(text)
-        # await msg.reply(open(way, 'rb'))
-        # with open(way, 'r', encoding='UTF-8') as file:
-        #     text = ''.join(file.readlines())
-        #     await types.Document.reply(file)
-            # text = text.replace('>', '"больше"') if '>' in text else text
-            # text = text.replace('<', '"меньше"') if '<' in text else text
-            # if len(text) <= 4096:
-            #     await msg.reply(''.join(file.readlines()))
 
 
 #                                                                               Всё остальное
