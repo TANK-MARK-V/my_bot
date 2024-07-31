@@ -3,6 +3,7 @@ from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 
 from logs import do_log as log
+from users import get_users
 
 PORYADOK = ["первое", "второе", "третье", "четвёртое", "пятое", "шестое", "седьмое", "восьмое", "девятое"]
 DO = dict()
@@ -148,6 +149,11 @@ def bracket_check(test_string):
 
 @router_sti.message(Command("sti"))
 async def solving(msg: Message, command: CommandObject):
+    
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
+
     if not command.args:
         log(msg, ('Комманда /sti не получила аргументов',))
         await msg.reply("Нужно ввести логическое выражение")

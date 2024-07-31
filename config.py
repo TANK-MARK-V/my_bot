@@ -1,9 +1,4 @@
 BOT_TOKEN = "6966599649:AAFvCukCMGCOLc_U1nQ95ksCuqeIJ6yVOCw"
-ADMIN = (('5091023477', 'markusha_v3'),)
-NOT_ADMIN = (('1303717923', 'pppp132132'),)
-
-
-
 COMMANDS = {
     "_names_": ["lolgen", "word", "sti"],
     

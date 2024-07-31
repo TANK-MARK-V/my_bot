@@ -1,10 +1,11 @@
 from aiogram import types, F, Router
-from aiogram.types import Message
-from aiogram.filters import Command, CommandObject
+from aiogram.types import Message, FSInputFile
+from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import COMMANDS, ADMIN, info
+from config import COMMANDS, info
 from logs import do_log as log
+from users import get_users
 
 from os import path
 import datetime
@@ -12,14 +13,24 @@ import datetime
 router = Router()
 
 #                                                                                   Старт
-@router.message(Command("start"))
+@router.message(CommandStart())
 async def start_handler(msg: Message):
+    
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
+
     log(msg, ('Комманда /start',))
     await msg.answer('Чтобы узнать, что я умею используй "/info"')
 
 #                                                                           Информация о коммандах
 @router.message(Command("info"))
 async def information(msg: Message, command: CommandObject):
+    
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
+
     if command.args and command.args in COMMANDS['_names_']:
         log(msg, (f'Комманда /info {command.args}',))
         await msg.reply(info(command=command.args))
@@ -43,30 +54,64 @@ async def send_info(callback: types.CallbackQuery):
 #                                                                               Инструменты админа
 @router.message(Command("admin"))
 async def admin(msg: Message, command: CommandObject):
-    nope = '' if (str(msg.from_user.id), msg.from_user.username) in ADMIN else 'не '
-    if not command.args:
-        log(msg, (f'Пользователь {nope}обладает правами администратора', ))
-        await msg.reply(f"Вы {nope}обладаете правами администратора")
+    user = get_users(msg=msg, info=msg.from_user.username)
+    if not user[2]:
+        log(msg, (f'Пользователь не обладает правами администратора', ))
+        await msg.reply(f"Вы не обладаете правами администратора")
         return None
-    if not nope:
-        args = command.args.split('_')
-        if args[0] in ('logs', 'errors'):
-            if len(args) == 2:
-                args.append(datetime.datetime.now().strftime("%d.%m-%y"))
-            if len(args) == 3:
-                if '-' not in args[2]:
-                    args[2] += '-' + str(datetime.datetime.now().strftime("%y"))
-            way = f"{path.join(*args)}.txt"
-            if not path.isfile(way):
-                log(msg, (f'Комманда /admin {args[0]}:', f'файл не найден - {way}'))
-                await msg.reply('Файл не найден')
-                return None
-            log(msg, (f'Комманда /admin {args[0]}:', f'файл найден - {way}'))
-            with open(way, 'r', encoding='UTF-8') as file:
-                await msg.reply(''.join(file.readlines()))
+    if not command.args:
+            log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}', ))
+            await msg.reply(f"Вы обладаете правами администратора уровня {user[2]}")
+            return None
+    args = command.args.split(' ')
+    if args[0] in ('logs', 'errors'):  # Получить логи
+        if user[2] < 1:
+            log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен 1', ))
+            await msg.reply(f"Вы не обладаете нунжными правами администратора")
+            return None
+        if len(args) == 1:
+            log(msg, (f'Пользователь некорректно ввёл команду:', command.args))
+            await msg.reply(f"Некорректно введена комманда")
+            return None
+        try:
+            args[1] = args[1].replace('@', '') if '@' in args[1] else args[1]
+            user = get_users(info=args[1])
+        except Exception:
+            log(msg, (f'Пользователь некорректно ввёл информацию о пользователе:', command.args))
+            await msg.reply(f"Некорректно введена информация о пользователе")
+            return None
+        if user:
+            args[1] = user[0]
+        if len(args) == 2:
+            args.append(datetime.datetime.now().strftime("%d.%m-%y"))
+        if len(args) == 3:
+            if '-' not in args[2]:
+                args[2] += '-' + str(datetime.datetime.now().strftime("%y"))
+        way = f"{path.join(*args)}.txt"
+        if not path.isfile(way):
+            log(msg, (f'Комманда /admin {args[0]}:', f'файл не найден - {way}'))
+            await msg.reply('Файл не найден')
+            return None
+        log(msg, (f'Комманда /admin {args[0]}:', f'файл найден - {way}'))
+        text = FSInputFile(way)
+        await msg.reply_document(text)
+        # await msg.reply(open(way, 'rb'))
+        # with open(way, 'r', encoding='UTF-8') as file:
+        #     text = ''.join(file.readlines())
+        #     await types.Document.reply(file)
+            # text = text.replace('>', '"больше"') if '>' in text else text
+            # text = text.replace('<', '"меньше"') if '<' in text else text
+            # if len(text) <= 4096:
+            #     await msg.reply(''.join(file.readlines()))
+
 
 #                                                                               Всё остальное
 @router.message()
 async def message_handler(msg: Message):
+    
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
+
     log(msg, ('Пустое сообщение:', msg.text))
     await msg.answer(f"Твой ID, имя, фамилия и username: {msg.from_user.id}, {msg.from_user.full_name}, {msg.from_user.username},")

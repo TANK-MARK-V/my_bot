@@ -7,6 +7,7 @@ from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 
 from logs import do_log as log
+from users import get_users
 
 morph = pymorphy3.MorphAnalyzer()
 router_lolgen = Router()
@@ -147,6 +148,11 @@ def adding(word, speech):
 
 @router_lolgen.message(Command("lolgen"))
 async def do_lol(msg: Message, command: CommandObject):
+    
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
+
     args = command.args if command.args else ''
     if '<' in args:
         args = args.replace('<', '')
@@ -177,6 +183,11 @@ async def do_lol(msg: Message, command: CommandObject):
 
 @router_lolgen.message(Command("word"))
 async def adding_word(msg: Message, command: CommandObject):
+    
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
+
     if not command.args:
         log(msg, ('Комманда /word не получила аргументов',))
         await msg.reply("Нужно ввести слово и его часть речи")
