@@ -1,4 +1,4 @@
-BOT_TOKEN = "6966599649:AAFvCukCMGCOLc_U1nQ95ksCuqeIJ6yVOCw"
+BOT_TOKEN = "6966599649:AAFvCukCMGCOLc_U1nQ95ksCuqeIJ6yVOCw"  # Токен бота
 COMMANDS = {
     "_names_": ["lolgen", "word", "sti"],
     
