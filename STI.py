@@ -5,7 +5,6 @@ from aiogram.filters import Command, CommandObject
 from logs import do_log as log
 from users import get_users
 
-PORYADOK = ["первое", "второе", "третье", "четвёртое", "пятое", "шестое", "седьмое", "восьмое", "девятое"]
 DO = dict()
 PRIMER = ''
 router_sti = Router()
@@ -39,8 +38,8 @@ def making():
                 if final[op][long] == meen:
                     start = opening.pop(op)
                     end = closing.pop(closing.index(final[op][long] + start))
-                    DO[PORYADOK[len(DO)]] = PRIMER[start + 1:end]
-                    PRIMER = PRIMER.replace(PRIMER[start:end + 1], PORYADOK[len(DO) - 1])  # Замена действий
+                    DO['|' + str(len(DO)) + '|'] = PRIMER[start + 1:end]
+                    PRIMER = PRIMER.replace(PRIMER[start:end + 1], '|' + str(len(DO) - 1) + '|')  # Замена действий
                     flag = 1
                     break
             if flag:
@@ -69,10 +68,10 @@ def preps(rest, dct, value):
     new_value = value
     for tri in dct.keys():  # Заменяет предыдущие действия на их результат
         if tri in new_value:
-            new_value = str(new_value.replace(tri, str(dct[tri])))
+            new_value = new_value.replace(tri, str(dct[tri]))
     for letter in rest.keys():  # Заменяет переменные на их значения
         if letter in str(new_value):
-            new_value = str(new_value).replace(letter, str(rest[letter]))
+            new_value = new_value.replace(letter, str(rest[letter]))
     return changing(new_value)
 
 
@@ -107,9 +106,13 @@ def sti(primer, only=''):
     else:
         need_smth = False
         need = None
-
+    first_space = "   "
+    second_space = " "
     out = ''
-    out += f"{'x y z w'[:num_of_perem * 2]}  {'1 2 3 4 5 6 7 8 9'[:len(DO.keys()) * 2 - 1]}\n"
+    out += 'x y z w'[:num_of_perem * 2] + "  " + first_space.join([str(i + 1) for i in range(len(DO.keys())) if i < 9])
+    if len(DO.keys()) >= 10:
+        out += second_space + second_space.join([str(i + 1) for i in range(len(DO.keys())) if i >= 9])
+    out += '\n'
     for x in range(2):
         for y in range(2):
             if num_of_perem > 2:
@@ -118,15 +121,15 @@ def sti(primer, only=''):
                         for w in range(2):
                             sleest = count(DO, x=x, y=y, z=z, w=w)
                             if not need_smth or (need_smth and int(sleest[-1]) == need):
-                                out += f"{x} {y} {z} {w}  {' '.join(sleest)}\n"
+                                out += f"{x} {y} {z} {w}  " + first_space.join(sleest) + "\n"
                     else:
                         sleest = count(DO, x=x, y=y, z=z)
                         if not need_smth or (need_smth and int(sleest[-1]) == need):
-                            out += f"{x} {y} {z}  {' '.join(sleest)}\n"
+                            out += f"{x} {y} {z}  " + first_space.join(sleest) + "\n"
             else:
                 sleest = count(DO, x=x, y=y)
                 if not need_smth or (need_smth and int(sleest[-1]) == need):
-                    out += f"{x} {y}  {' '.join(sleest)}\n"
+                    out += f"{x} {y}  " + first_space.join(sleest) + "\n"
     return out
 
 
