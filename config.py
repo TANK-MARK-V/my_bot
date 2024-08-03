@@ -1,4 +1,5 @@
-BOT_TOKEN = "6966599649:AAFvCukCMGCOLc_U1nQ95ksCuqeIJ6yVOCw"  # Токен бота
+with open("token.txt", 'r', encoding="UTF-8") as file:
+    BOT_TOKEN = file.readline()  # Токен бота
 COMMANDS = {
     "_names_": ["lolgen", "word", "sti"],
     
