@@ -1,11 +1,11 @@
-from aiogram import types, F, Router
+from aiogram import types, F, Router, Bot
 from aiogram.types import Message, FSInputFile
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import COMMANDS, info
 from logs import do_log as log
-from users import get_users
+from users import get_users, get_user_list
 
 from os import path
 import datetime
@@ -53,7 +53,7 @@ async def send_info(callback: types.CallbackQuery):
 
 #                                                                               Инструменты админа
 @router.message(Command("admin"))
-async def admin(msg: Message, command: CommandObject):
+async def admin(msg: Message, command: CommandObject, bot: Bot):
     user = get_users(msg=msg, info=msg.from_user.username)
     if not user[2]:
         log(msg, (f'Пользователь не обладает правами администратора', ))
@@ -63,43 +63,92 @@ async def admin(msg: Message, command: CommandObject):
             log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}', ))
             await msg.reply(f"Вы обладаете правами администратора уровня {user[2]}")
             return None
+    if command.args == 'users':
+        await user_list(msg, user)
+        return None
     args = command.args.split(' ')
-    if args[0] in ('logs', 'errors'):  # Получить логи
-        if user[2] < 1:
-            log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен 1', ))
-            await msg.reply(f"Вы не обладаете нужными правами администратора")
-            return None
-        if len(args) == 1:
-            log(msg, (f'/admin - пользователь некорректно ввёл команду:', command.args))
-            await msg.reply(f"Некорректно введена комманда")
-            return None
-        try:
-            args[1] = args[1].replace('@', '') if '@' in args[1] else args[1]
-            user = get_users(info=args[1])
-        except Exception:
-            log(msg, (f'Пользователь некорректно ввёл информацию о пользователе:', command.args))
-            await msg.reply(f"Некорректно введена информация о пользователе")
-            return None
-        if not user:
-            log(msg, (f'/admin - Искомый пользователь не существует:', command.args))
-            await msg.reply(f"Такого пользователя не существует")
-            return None
-        args[1] = user[0]
-        if len(args) == 2:
-            args.append(datetime.datetime.now().strftime("%d.%m-%y"))
-        if len(args) == 3:
-            if '-' not in args[2]:
-                args[2] += '-' + str(datetime.datetime.now().strftime("%y"))
-        way = f"{path.join(*args)}.txt"
-        if not path.isfile(way):
-            log(msg, (f'Комманда /admin {args[0]}:', f'файл не найден - {way}'))
-            await msg.reply('Файл не найден')
-            return None
-        log(msg, (f'Комманда /admin {args[0]}:', f'файл найден - {way}'))
-        text = FSInputFile(way)
-        await msg.reply_document(text)
+    if args[0] in ('logs', 'errors'):
+        await admin_logs(msg, command, user, args)
+        return None
+    if args[0] in ('chat'):
+        await admin_chat(msg, command, user, args, bot)
+        return None
+    log(msg, (f'/admin - несуществующая комманда:', command.args))
+    await msg.reply(f"Такой комманды не существует")
 
+#                                                                               Получить список пользователей
+async def user_list(msg, user):
+    need = 3
+    if user[2] < need:
+        log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {need}', ))
+        await msg.reply(f"Вы не обладаете нужными правами администратора")
+        return None
+    users = get_user_list()
+    log(msg, (f'/admin - получена информация о пользователях', ))
+    text = '\n'.join([' ~~~ '.join(tuple(map(lambda x: str(x), line))) for line in users])
+    await msg.reply(text)
 
+#                                                                               Получить логи пользователя
+async def admin_logs(msg, command, user, args):
+    need = 3
+    if user[2] < need:
+        log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {need}', ))
+        await msg.reply(f"Вы не обладаете нужными правами администратора")
+        return None
+    if len(args) == 1:
+        log(msg, (f'/admin - пользователь некорректно ввёл команду:', command.args))
+        await msg.reply(f"Некорректно введена комманда")
+        return None
+    try:
+        args[1] = args[1].replace('@', '') if '@' in args[1] else args[1]
+        wanted = get_users(info=args[1])
+    except Exception:
+        log(msg, (f'Пользователь некорректно ввёл информацию о пользователе:', command.args))
+        await msg.reply(f"Некорректно введена информация о пользователе")
+        return None
+    if not wanted:
+        log(msg, (f'/admin - искомый пользователь не существует:', command.args))
+        await msg.reply(f"Такого пользователя не существует")
+        return None
+    args[1] = wanted[0]
+    if len(args) == 2:
+        args.append(datetime.datetime.now().strftime("%y-%m.%d"))
+    way = f"{path.join(*args)}.txt"
+    if not path.isfile(way):
+        log(msg, (f'/admin {args[0]}:', f'файл не найден - {way}'))
+        await msg.reply('Файл не найден')
+        return None
+    log(msg, (f'/admin {args[0]}:', f'файл найден - {way}'))
+    text = FSInputFile(way)
+    await msg.reply_document(text)
+
+#                                                                               Написать пользователю
+async def admin_chat(msg, command, user, args, bot):
+    need = 2
+    if user[2] < need:
+        log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {need}', ))
+        await msg.reply(f"Вы не обладаете нужными правами администратора")
+        return None
+    if len(args) < 3:
+        log(msg, (f'/admin - пользователь некорректно ввёл команду:', command.args))
+        await msg.reply(f"Некорректно введена комманда")
+        return None
+    try:
+        args[1] = args[1].replace('@', '') if '@' in args[1] else args[1]
+        wanted = get_users(info=args[1])
+    except Exception:
+        log(msg, (f'Пользователь некорректно ввёл информацию о пользователе:', command.args))
+        await msg.reply(f"Некорректно введена информация о пользователе")
+        return None
+    if not wanted:
+        log(msg, (f'/admin - нужный пользователь не существует:', command.args))
+        await msg.reply(f"Такого пользователя не существует")
+        return None
+    args[2] = ' '.join(args[2:])
+    log(msg, (f'/admin - пользователь написал другому пользователю:', f'{args[1]}: {args[2]}'))
+    await bot.send_message(wanted[0], args[2]) 
+    await msg.reply(f"Сообщение успешно отправлено")
+    
 #                                                                               Всё остальное
 @router.message()
 async def message_handler(msg: Message):

@@ -44,3 +44,11 @@ def make_user(id, username, cur, update):
         return ('Информация о пользователе была обновлена:', f'{id}, {username}')
     cur.execute(f"""INSERT INTO users (id, username, admin) VALUES ('{id}', '{username}', 0)""").fetchall()
     return ('Добавлен новый пользователь:', f'{id}, {username}')
+
+
+def get_user_list():
+    con = sqlite3.connect("DataBase.sqlite")
+    cur = con.cursor()
+    users = tuple(cur.execute('''SELECT * FROM users''').fetchall())
+    con.close()
+    return users

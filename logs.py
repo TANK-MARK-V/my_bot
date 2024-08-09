@@ -3,7 +3,7 @@ import datetime
 
 
 def make_way(msg, folder):
-    date = datetime.datetime.now().strftime("%d.%m-%y")
+    date = datetime.datetime.now().strftime("%y-%m.%d")
     way = path.join(folder, str(msg.from_user.id))
     if not path.isdir(folder):
         mkdir(folder)
