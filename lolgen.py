@@ -173,9 +173,6 @@ async def do_lol(msg: Message, command: CommandObject):
         log(msg, ('Комманда /lolgen:', f'ОШИБКА - {e}, запрос - {args}'), error=True)
         await msg.reply("Что-то пошло не так")
         return None
-    if len(last_message) == 2:
-        with open('two.txt', 'w') as file:
-            file.write('Не менее двух')
     log(msg, ('Комманда /lolgen выполнила свою работу:', text))
     await msg.reply(text)
 
