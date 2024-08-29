@@ -158,19 +158,19 @@ async def solving(msg: Message, command: CommandObject):
         log(msg, user)
 
     if not command.args:
-        log(msg, ('Комманда /sti не получила аргументов',))
+        log(msg, ('Команда /sti не получила аргументов',))
         await msg.reply("Нужно ввести логическое выражение")
         return None
     leest = command.args.split('_')
     if not bracket_check(leest[0]):
-        log(msg, ('Комманда /sti получила логическое выражение, в котором не все скобки закрыты:', command.args))
+        log(msg, ('Команда /sti получила логическое выражение, в котором не все скобки закрыты:', command.args))
         await msg.reply("Все скобки логического выражения должны быть закрыты")
         return None
     try:
         out = sti(*leest)
     except Exception as e:
-        log(msg, ('Комманда /sti:', f'ОШИБКА - {e}, запрос - {command.args}'), error=True)
+        log(msg, ('Команда /sti:', f'ОШИБКА - {e}, запрос - {command.args}'), error=True)
         await msg.reply("Что-то пошло не так")
         return None
-    log(msg, ('Комманда /sti выполнила свою работу:', command.args))
+    log(msg, ('Команда /sti выполнила свою работу:', command.args))
     await msg.reply(out)

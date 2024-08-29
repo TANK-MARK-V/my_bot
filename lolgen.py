@@ -162,7 +162,7 @@ async def do_lol(msg: Message, command: CommandObject):
         try:
             args = last_message[msg.from_user.id]
         except Exception as e:
-            log(msg, ('Комманда /lolgen не получила схему',))
+            log(msg, ('Команда /lolgen не получила схему',))
             await msg.reply("Необходимо передать схему предложения хотя бы раз")
             return None
     else:
@@ -170,10 +170,10 @@ async def do_lol(msg: Message, command: CommandObject):
     try:
         text = brain(order=args)
     except Exception as e:
-        log(msg, ('Комманда /lolgen:', f'ОШИБКА - {e}, запрос - {args}'), error=True)
+        log(msg, ('Команда /lolgen:', f'ОШИБКА - {e}, запрос - {args}'), error=True)
         await msg.reply("Что-то пошло не так")
         return None
-    log(msg, ('Комманда /lolgen выполнила свою работу:', text))
+    log(msg, ('Команда /lolgen выполнила свою работу:', text))
     await msg.reply(text)
 
 
@@ -186,14 +186,14 @@ async def adding_word(msg: Message, command: CommandObject):
         log(msg, user)
 
     if not command.args:
-        log(msg, ('Комманда /word не получила аргументов',))
+        log(msg, ('Команда /word не получила аргументов',))
         await msg.reply("Нужно ввести слово и его часть речи")
         return None
     leest = command.args.split(' ')
     if len(leest) != 2:
-        log(msg, ('Комманда /word получила не 2 аргумента:', command.args))
+        log(msg, ('Команда /word получила не 2 аргумента:', command.args))
         await msg.reply('Нужно ввести только одно слово и его часть речи')
         return None
     result = adding(leest[0], leest[1])
-    log(msg, ('Комманда /word выполнила свою работу с результатом:', result, command.args))
+    log(msg, ('Команда /word выполнила свою работу с результатом:', result, command.args))
     await msg.reply(result)
