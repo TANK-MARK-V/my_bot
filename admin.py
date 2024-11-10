@@ -45,7 +45,10 @@ async def admin_information(msg: Message, command: CommandObject):
         builder.add(types.InlineKeyboardButton(
             text=f'/{command}',
             callback_data=f'command_{command}'))
-        
+        grid = [2 for _ in range(len(COMMANDS["__admin_names__"]) // 2)]
+        if len(COMMANDS["__admin_names__"]) % 2:
+            grid.append(1)
+        builder.adjust(*grid)
     await msg.reply("Выберете нужную команду", reply_markup=builder.as_markup())
 
 
@@ -53,7 +56,6 @@ async def admin_information(msg: Message, command: CommandObject):
 async def send_info(callback: types.CallbackQuery):
     log(callback, (f'Выбран вариант {callback.data}',))
     await callback.message.answer(info(callback.data.replace("command_", '')))
-    await callback.answer()
 
 #                                                                               Получить список пользователей
 @router_admin.message(Command("admin_users"))
@@ -153,13 +155,13 @@ async def admin_chat(msg: Message, command: CommandObject, bot: Bot):
         return None
     args = command.args.split()
     need = 2
-    if len(args) < 2:
-        log(msg, (f'/admin_chat - пользователь некорректно ввёл команду', command.args))
-        await msg.reply(f"Некорректно введена команда")
-        return None
     if user[2] < need:
         log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {need}', ))
         await msg.reply(f"Вы не обладаете нужными правами администратора")
+        return None
+    if len(args) < 2:
+        log(msg, (f'/admin_chat - пользователь некорректно ввёл команду', command.args))
+        await msg.reply(f"Некорректно введена команда")
         return None
     try:
         args[0] = args[0].replace('@', '') if '@' in args[0] else args[0]

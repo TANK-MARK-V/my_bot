@@ -1,5 +1,5 @@
-from aiogram import types, F, Router, Bot
-from aiogram.types import Message, FSInputFile
+from aiogram import types, F, Router
+from aiogram.types import Message
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -39,7 +39,11 @@ async def information(msg: Message, command: CommandObject):
         builder.add(types.InlineKeyboardButton(
             text=f'/{command}',
             callback_data=f'command_{command}'))
-        
+        grid = [3 for _ in range(len(COMMANDS["__admin_names__"]) // 3)]
+    if len(COMMANDS["__names__"]) % 3:
+        grid.append(len(COMMANDS["__names__"]) % 3)
+    builder.adjust(*grid)
+    print(grid)
     await msg.reply("Выберете нужную команду", reply_markup=builder.as_markup())
 
 
@@ -47,7 +51,6 @@ async def information(msg: Message, command: CommandObject):
 async def send_info(callback: types.CallbackQuery):
     log(callback, (f'Выбран вариант {callback.data}',))
     await callback.message.answer(info(callback.data.replace("command_", '')))
-    await callback.answer()
 
 
 #                                                                               Всё остальное
