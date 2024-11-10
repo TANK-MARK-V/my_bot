@@ -55,12 +55,9 @@ def decode(text):
 @router_coding.message(Command("encode"))
 async def encoding(msg: Message, command: CommandObject):
     
-    user = get_users(msg=msg, info=msg.from_user.username)  # Проверка на наличие пользователя в базе данных
-    need = 0
-    if user[2] < need:
-        log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {need}', ))
-        await msg.reply(f"Вы не обладаете нужными правами администратора")
-        return None
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
 
     if not command.args:
         log(msg, ('Команда /encode не получила аргументов',))
@@ -84,12 +81,9 @@ async def encoding(msg: Message, command: CommandObject):
 @router_coding.message(Command("decode"))
 async def encoding(msg: Message, command: CommandObject):
     
-    user = get_users(msg=msg, info=msg.from_user.username)  # Проверка на наличие пользователя в базе данных
-    need = 5
-    if user[2] < need:
-        log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {need}', ))
-        await msg.reply(f"Вы не обладаете нужными правами администратора")
-        return None
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        log(msg, user)
 
     if not command.args:
         log(msg, ('Команда /decode не получила аргументов',))
