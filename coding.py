@@ -54,20 +54,20 @@ def decode(text):
 
 @router_coding.message(Command("encode"))
 async def encoding(msg: Message, command: CommandObject):
-    
+
     user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
     if user:
         log(msg, user)
 
-    if not command.args:
-        log(msg, ('Команда /encode не получила аргументов',))
-        await msg.reply("Нужно ввести текст для шифрования")
-        return None
-    text = command.args
+    text = command.args if command.args else ''
     if '<' in text:
-        text.replace('<', '')
+        text = text.replace('<', '')
     if '>' in text:
-        text.replace('>', '')
+        text = text.replace('>', '')
+    if not text:
+        log(msg, ('Команда /encode не получила аргументов',))
+        await msg.reply("Нужно ввести текст для зашифровки")
+        return None
     try:
         out = encode(text)
     except Exception as e:
@@ -87,11 +87,19 @@ async def encoding(msg: Message, command: CommandObject):
 
     if not command.args:
         log(msg, ('Команда /decode не получила аргументов',))
-        await msg.reply("Нужно ввести текст для шифрования")
+        await msg.reply("Нужно ввести текст для расшифровки")
         return None
     text = command.args
     try:
         out = decode(text)
+        if '<' in out:
+            out = out.replace('<', '')
+        if '>' in out:
+            out = out.replace('>', '')
+        if not out:
+            log(msg, ('Команда /decode оставила пустое сообщение',))
+            await msg.reply('Сообщение оказалось пустым')
+            return None
     except Exception as e:
         log(msg, ('Команда /decode:', f'ОШИБКА - {e}, запрос - {text}'), error=True)
         await msg.reply("Что-то пошло не так")
