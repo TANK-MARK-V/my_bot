@@ -56,6 +56,7 @@ async def admin_information(msg: Message, command: CommandObject):
 async def send_info(callback: types.CallbackQuery):
     log(callback, (f'Выбран вариант {callback.data}',))
     await callback.message.answer(info(callback.data.replace("command_", '')))
+    await callback.answer()
 
 #                                                                               Получить список пользователей
 @router_admin.message(Command("admin_users"))

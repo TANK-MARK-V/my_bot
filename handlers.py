@@ -43,7 +43,6 @@ async def information(msg: Message, command: CommandObject):
     if len(COMMANDS["__names__"]) % 3:
         grid.append(len(COMMANDS["__names__"]) % 3)
     builder.adjust(*grid)
-    print(grid)
     await msg.reply("Выберете нужную команду", reply_markup=builder.as_markup())
 
 
@@ -51,6 +50,7 @@ async def information(msg: Message, command: CommandObject):
 async def send_info(callback: types.CallbackQuery):
     log(callback, (f'Выбран вариант {callback.data}',))
     await callback.message.answer(info(callback.data.replace("command_", '')))
+    await callback.answer()
 
 
 #                                                                               Всё остальное
