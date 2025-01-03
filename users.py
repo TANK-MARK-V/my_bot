@@ -26,13 +26,12 @@ def get_users(msg=None, info=False):
                                 WHERE id = '{ids[usernames.index(msg.from_user.username)]}'""").fetchall()  # Поменять существующий username на 'None'
                 cur.execute(f"""UPDATE users SET username = '{msg.from_user.username}' WHERE id = '{msg.from_user.id}'""").fetchall()
                 result = ('Информация о пользователях обновлена:', f"{msg.from_user.id}, {msg.from_user.username}; {ids[usernames.index(msg.from_user.username)]}, 'None'")
-        
-        if not info:
-            return result
         all_user = tuple(cur.execute('''SELECT * FROM users''').fetchall())  # Обновление информации о польхователях
         ids, usernames, admins = tuple(map(lambda x: x[0], all_user)), tuple(map(lambda x: x[1], all_user)), tuple(map(lambda x: x[2], all_user))
         con.commit()
-        con.close()
+        con.close()        
+        if not info:
+            return result
     if info in usernames:
         ind = usernames.index(info)
         return (ids[ind], usernames[ind], admins[ind])
