@@ -15,7 +15,7 @@ def encode(text):
     encoded = ""
 
     for i in text:
-        if i in (' ', '\n'):
+        if i not in ''.join(letters[0][0].split(' ')) + ''.join(letters[0][1].split(' ')) + ''.join(letters[1][0].split(' ')) + ''.join(letters[1][1].split(' ')):
             encoded += i
         else:
             lang = int(i in letters[1][0] + letters[1][1])

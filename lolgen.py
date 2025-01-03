@@ -11,7 +11,7 @@ from users import get_users
 
 morph = pymorphy3.MorphAnalyzer()
 router_lolgen = Router()
-last_message = {}
+last_command = {}
 
 def getting():  # Функция для считывания слов из БД
     con = sqlite3.connect("DataBase.sqlite")
@@ -160,13 +160,13 @@ async def do_lol(msg: Message, command: CommandObject):
         args = args.replace('>', '')
     if not args:
         try:
-            args = last_message[msg.from_user.id]
+            args = last_command[msg.from_user.id]
         except Exception as e:
             log(msg, ('Команда /lolgen не получила схему',))
             await msg.reply("Необходимо передать схему предложения хотя бы раз")
             return None
     else:
-        last_message[msg.from_user.id] = args
+        last_command[msg.from_user.id] = args
     try:
         text = brain(order=args)
     except Exception as e:
