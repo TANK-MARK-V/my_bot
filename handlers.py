@@ -9,7 +9,7 @@ from logs import do_log as log
 from STI import sti
 from coding import encode, decode
 from users import get_users
-from EVO import EVO, step
+from EVO import step
 
 router = Router()
 

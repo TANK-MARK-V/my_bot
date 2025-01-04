@@ -137,6 +137,11 @@ async def admin_chat(msg: Message, command: CommandObject, bot: Bot):
         await msg.reply(f"Вы не обладаете нужными правами администратора")
         return None
     if not command.args:
+        if msg.from_user.id in last_massage.keys() and last_massage[msg.from_user.id][0] == "chat" and len(last_massage[msg.from_user.id]) > 1:
+            last_massage[msg.from_user.id] = ("chat", )
+            log(msg, (f'/chat - пользователь закончил чат', ))
+            await msg.reply(f"Сообщения больше не отправляются")
+            return None
         last_massage[msg.from_user.id] = ("chat", )
         log(msg, (f'/chat - пользователь не передал информацию о пользователе', ))
         await msg.reply(f"Не была указана информация о пользователе")
@@ -154,5 +159,5 @@ async def admin_chat(msg: Message, command: CommandObject, bot: Bot):
         await msg.reply(f"Такого пользователя не существует")
         return None
     last_massage[msg.from_user.id] = ("chat", wanted)
-    log(msg, (f'/chat - пользователь начал чат с другим пользователем:', wanted[0] + '~~~' + wanted[1]))
+    log(msg, (f'/chat - пользователь начал чат с другим пользователем:', wanted[0] + ' ~~~ ' + wanted[1]))
     await msg.reply("Напишите сообщение")
