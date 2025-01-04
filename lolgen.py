@@ -8,6 +8,7 @@ from aiogram.filters import Command, CommandObject
 
 from logs import do_log as log
 from users import get_users
+from config import last_massage
 
 morph = pymorphy3.MorphAnalyzer()
 router_lolgen = Router()
@@ -162,6 +163,7 @@ async def do_lol(msg: Message, command: CommandObject):
         try:
             args = last_command[msg.from_user.id]
         except Exception as e:
+            last_massage[msg.from_user.id] = ("lolgen", )
             log(msg, ('Команда /lolgen не получила схему',))
             await msg.reply("Необходимо передать схему предложения хотя бы раз")
             return None
@@ -170,9 +172,11 @@ async def do_lol(msg: Message, command: CommandObject):
     try:
         text = brain(order=args)
     except Exception as e:
+        last_massage[msg.from_user.id] = ("lolgen", )
         log(msg, ('Команда /lolgen:', f'ОШИБКА - {e}, запрос - {args}'), error=True)
         await msg.reply("Что-то пошло не так")
         return None
+    last_massage[msg.from_user.id] = ("lolgen", )
     log(msg, ('Команда /lolgen выполнила свою работу:', text))
     await msg.reply(text)
 
@@ -186,14 +190,17 @@ async def adding_word(msg: Message, command: CommandObject):
         log(msg, user)
 
     if not command.args:
+        last_massage[msg.from_user.id] = ("word", )
         log(msg, ('Команда /word не получила аргументов',))
         await msg.reply("Нужно ввести слово и его часть речи")
         return None
     leest = command.args.split(' ')
     if len(leest) != 2:
+        last_massage[msg.from_user.id] = ("word", )
         log(msg, ('Команда /word получила не 2 аргумента:', command.args))
         await msg.reply('Нужно ввести только одно слово и его часть речи')
         return None
     result = adding(leest[0], leest[1])
+    last_massage[msg.from_user.id] = ("word", )
     log(msg, ('Команда /word выполнила свою работу с результатом:', result, command.args))
     await msg.reply(result)

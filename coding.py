@@ -4,6 +4,7 @@ from aiogram.filters import Command, CommandObject
 
 from logs import do_log as log
 from users import get_users
+from config import last_massage
 
 router_coding = Router()
 
@@ -59,23 +60,14 @@ async def encoding(msg: Message, command: CommandObject):
     if user:
         log(msg, user)
 
-    text = command.args if command.args else ''
-    if '<' in text:
-        text = text.replace('<', '')
-    if '>' in text:
-        text = text.replace('>', '')
-    if not text:
-        log(msg, ('Команда /encode не получила аргументов',))
-        await msg.reply("Нужно ввести текст для зашифровки")
+    if msg.from_user.id not in last_massage.keys() or last_massage[msg.from_user.id] != ("encode", True):
+        last_massage[msg.from_user.id] = ("encode", True)
+        log(msg, ('Команда /encode начала свою работу', ))
+        await msg.reply("Вводите сообщения, которые хотите зашифровать. Чтобы закончить зашифровку сообщений, введите команду ещё раз")
         return None
-    try:
-        out = encode(text)
-    except Exception as e:
-        log(msg, ('Команда /encode:', f'ОШИБКА - {e}, запрос - {text}'), error=True)
-        await msg.reply("Что-то пошло не так")
-        return None
-    log(msg, ('Команда /encode выполнила свою работу:', command.args))
-    await msg.reply(out)
+    last_massage[msg.from_user.id] = ("encode", )
+    log(msg, ('Команда /encode закончила свою работу:', ))
+    await msg.reply("Зашифровка сообщений закончена")
 
 
 @router_coding.message(Command("decode"))
@@ -85,24 +77,11 @@ async def encoding(msg: Message, command: CommandObject):
     if user:
         log(msg, user)
 
-    if not command.args:
-        log(msg, ('Команда /decode не получила аргументов',))
-        await msg.reply("Нужно ввести текст для расшифровки")
+    if msg.from_user.id not in last_massage.keys() or last_massage[msg.from_user.id] != ("decode", True):
+        last_massage[msg.from_user.id] = ("decode", True)
+        log(msg, ('Команда /decode начала свою работу', ))
+        await msg.reply("Вводите сообщения, которые хотите расшифровать. Чтобы закончить расшифровку сообщений, введите команду ещё раз")
         return None
-    text = command.args
-    try:
-        out = decode(text)
-        if '<' in out:
-            out = out.replace('<', '')
-        if '>' in out:
-            out = out.replace('>', '')
-        if not out:
-            log(msg, ('Команда /decode оставила пустое сообщение',))
-            await msg.reply('Сообщение оказалось пустым')
-            return None
-    except Exception as e:
-        log(msg, ('Команда /decode:', f'ОШИБКА - {e}, запрос - {text}'), error=True)
-        await msg.reply("Что-то пошло не так")
-        return None
-    log(msg, ('Команда /decode выполнила свою работу:', command.args))
-    await msg.reply(out)
+    last_massage[msg.from_user.id] = ("encode", )
+    log(msg, ('Команда /decode закончила свою работу:', ))
+    await msg.reply("Расшифровка сообщений закончена")

@@ -4,6 +4,7 @@ from aiogram.filters import Command, CommandObject
 
 from logs import do_log as log
 from users import get_users
+from config import last_massage
 
 DO = dict()
 PRIMER = ''
@@ -158,19 +159,15 @@ async def solving(msg: Message, command: CommandObject):
         log(msg, user)
 
     if not command.args:
+        last_massage[msg.from_user.id] = ("sti", )
         log(msg, ('Команда /sti не получила аргументов',))
         await msg.reply("Нужно ввести логическое выражение")
         return None
-    leest = command.args.split('_')
-    if not bracket_check(leest[0]):
+    if not bracket_check(command.args):
+        last_massage[msg.from_user.id] = ("sti", )
         log(msg, ('Команда /sti получила логическое выражение, в котором не все скобки закрыты:', command.args))
         await msg.reply("Все скобки логического выражения должны быть закрыты")
         return None
-    try:
-        out = sti(*leest)
-    except Exception as e:
-        log(msg, ('Команда /sti:', f'ОШИБКА - {e}, запрос - {command.args}'), error=True)
-        await msg.reply("Что-то пошло не так")
-        return None
-    log(msg, ('Команда /sti выполнила свою работу:', command.args))
-    await msg.reply(out)
+    last_massage[msg.from_user.id] = ("sti", [command.args, ])
+    log(msg, ('Команда /sti получила логическое выражение', command.args))
+    await msg.reply('Введите нужное значение выражения или введите "-", если нужно вывести таблицу целиком')
