@@ -81,7 +81,7 @@ async def solving(msg: Message, command: CommandObject):
     await msg.reply("Введите команды")
 
 
-async def step(last, msg):
+async def answer_step(last, msg):
     if last[1] == 1:
         options = msg.text.split('\n')
         if len(options) < 2:

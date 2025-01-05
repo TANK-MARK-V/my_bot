@@ -9,7 +9,7 @@ from logs import do_log as log
 from STI import sti
 from coding import encode, decode
 from users import get_users
-from EVO import step
+from EVO import answer_step
 
 router = Router()
 
@@ -153,7 +153,7 @@ async def message_handler(msg: Message, bot: Bot):
             return None
         
         if last[0] == 'evo' and len(last) > 1:
-            await step(last, msg)
+            await answer_step(last, msg)
             return None
             # if last[1] == 1:
             #     options = msg.text.split('\n')
