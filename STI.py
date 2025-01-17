@@ -50,19 +50,14 @@ def making():
 def changing(value):  # Автоматически заменяет знаки
     new_value = value
     dct = {
-        ' and ': (' и ', ' ∧ '),
-        ' or ': (' или ', ' ∨ '),
-        ' == ': (' = ', ' ≡ ')
+        ' and ': (' и ', ' ∧ '),  # Конъюнкция
+        ' or ': (' или ', ' ∨ '),  # Дизъюнкция
+        ' == ': (' = ', ' ≡ '),  # Эквивалентность
+        ' <= ': (' -> ', ' → ')  # Имликация
     }
     for put, take in dct.items():
         for get in take:
             new_value = new_value.replace(get, put) if get in new_value else new_value
-    if ' -> ' in new_value:
-        new_value = new_value.split(' -> ')
-        new_value = f'not {new_value[0]} or {new_value[1]}'
-    if ' → ' in new_value:
-        new_value = new_value.split(' → ')
-        new_value = f'not {new_value[0]} or {new_value[1]}'
     return new_value
 
 def preps(rest, dct, value):
