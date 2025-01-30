@@ -94,21 +94,6 @@ async def message_handler(msg: Message, bot: Bot):
             await msg.reply(f"Сообщение успешно отправлено")
             return None
         
-        if last[0] == "sti" and len(last) > 1 and msg.text in ('0', '1', '-'):
-            args = last[1].copy()
-            if msg.text in ('0', '1'):
-                args.append(msg.text)
-            try:
-                out = sti(*args)
-            except Exception as e:
-                last_massage[msg.from_user.id] = ("sti", )
-                log(msg, ('Команда /sti:', f'ОШИБКА - {e}, запрос - {args[0]}'), error=True)
-                await msg.reply("Что-то пошло не так")
-                return None
-            log(msg, ('Команда /sti выполнила свою работу:', args[0]))
-            await msg.reply(out)
-            return None
-        
         if last[0] == "encode" and len(last) > 1:
             text = msg.text
             if '<' in text:
@@ -152,99 +137,24 @@ async def message_handler(msg: Message, bot: Bot):
             await msg.reply(out)
             return None
         
+        if last[0] == "sti" and len(last) > 1 and msg.text in ('0', '1', '-'):
+            args = last[1].copy()
+            if msg.text in ('0', '1'):
+                args.append(msg.text)
+            try:
+                out = sti(*args)
+            except Exception as e:
+                last_massage[msg.from_user.id] = ("sti", )
+                log(msg, ('Команда /sti:', f'ОШИБКА - {e}, запрос - {args[0]}'), error=True)
+                await msg.reply("Что-то пошло не так")
+                return None
+            log(msg, ('Команда /sti выполнила свою работу:', args[0]))
+            await msg.reply(out)
+            return None
+
         if last[0] == 'evo' and len(last) > 1:
             await answer_step(last, msg)
             return None
-            # if last[1] == 1:
-            #     options = msg.text.split('\n')
-            #     if len(options) < 2:
-            #         log(msg, ('Команда /evo получила меньше двух команд', msg.text))
-            #         await msg.reply("Нужно ввести не меньше двух команд")
-            #         return None
-            #     options = tuple(map(lambda x: ' ' + x if x[0] != ' ' else x, options))
-            #     last_massage[msg.from_user.id] = ("evo", 2, options)
-            #     log(msg, ('Команда /evo получила команды', msg.text))
-            #     await msg.reply("Введите начальное и конечное число")
-            #     return None
-            # if last[1] == 2:
-            #     options = last_massage[msg.from_user.id][2]
-            #     numbers = msg.text.split(' ')
-            #     if len(numbers) != 2:
-            #         log(msg, ('Команда /evo получила не два числа', msg.text))
-            #         await msg.reply("Нужно ввести только два числа: начальное и конечное")
-            #         return None
-            #     try:
-            #         numbers = tuple(map(lambda x: int(x), numbers))
-            #     except Exception:
-            #         log(msg, ('Команда /evo получила не числа', msg.text))
-            #         await msg.reply("Нужно ввести только два числа: начальное и конечное")
-            #         return None
-            #     last_massage[msg.from_user.id] = ("evo", 3, options, numbers)
-            #     log(msg, ('Команда /evo получила числа', msg.text))
-            #     await msg.reply('Введите числа, которые должна содержать траектория программы. Если таких чисел нет, введите "-"')
-            #     return None
-            # if last[1] == 3:
-            #     options, numbers = last_massage[msg.from_user.id][2], last_massage[msg.from_user.id][3]
-            #     throughs = None if msg.text == '-' else msg.split(' ')
-            #     if throughs:
-            #         try:
-            #             throughs = tuple(map(lambda x: int(x), throughs))
-            #         except Exception:
-            #             log(msg, ('Команда /evo получила не "обязательные" числа', msg.text))
-            #             await msg.reply('Введите числа, которые должна содержать траектория программы. Если таких чисел нет, введите "-"')
-            #             return None
-            #     last_massage[msg.from_user.id] = ("evo", 4, options, numbers, throughs)
-            #     log(msg, ('Команда /evo получила "обязательные" числа', msg.text))
-            #     await msg.reply('Введите числа, которые должна избегать траектория программы. '
-            #     + 'Если траектория программы не должна содержать цифру, начните сообщение с "+". '
-            #     + 'Если таких чисел нет, введите "-"')
-            #     return None
-            # if last[1] == 4:
-            #     options, numbers, throughs = last_massage[msg.from_user.id][2], last_massage[msg.from_user.id][3], last_massage[msg.from_user.id][4]
-            #     if msg.text[0] == '+':
-            #         escapes = set(msg.text[1:])
-            #         if len(escapes - set('0123456789')):
-            #             log(msg, ('Команда /evo получила не "избегаемые" цифры', msg.text))
-            #             await msg.reply('Введите числа или цифры, которые должна избегать траектория программы. Если таких чисел нет, введите "-"')
-            #             return None
-            #     else:
-            #         escapes = None if msg.text == '-' else msg.split(' ')
-            #         if escapes:
-            #             try:
-            #                 escapes = tuple(map(lambda x: int(x), escapes))
-            #             except Exception:
-            #                 log(msg, ('Команда /evo получила не "избегаемые" числа', msg.text))
-            #                 await msg.reply('Введите числа или цифры, которые должна избегать траектория программы. Если таких чисел нет, введите "-"')
-            #                 return None
-            #     last_massage[msg.from_user.id] = ("evo", 5, options, numbers, throughs, escapes)
-            #     log(msg, ('Команда /evo получила "избегаемые" числа или цифры', msg.text))
-            #     await msg.reply('Введите номер команды, которая не должна повторяться. Если такого условия нет, введите "-"')
-            #     return None
-            # if last[1] == 5:
-            #     options, numbers = last_massage[msg.from_user.id][2], last_massage[msg.from_user.id][3]
-            #     throughs, escapes = last_massage[msg.from_user.id][4], last_massage[msg.from_user.id][5]
-            #     double = 0 if msg.text == '-' else msg.text
-            #     try:
-            #         double = int(double)
-            #     except Exception:
-            #         log(msg, ('Команда /evo получила не номер команды', msg.text))
-            #         await msg.reply('Введите номер команды, которая не должна повторяться. Если такого условия нет, введите "-"')
-            #         return None
-            #     if double > len(options) or double < 0:
-            #         log(msg, ('Команда /evo получила номер несуществующей команды', msg.text))
-            #         await msg.reply('Введите номер команды, которая не должна повторяться. Если такого условия нет, введите "-"')
-            #         return None
-            #     log(msg, ('Команда /evo получила номер команды', msg.text))
-            #     try:
-            #         out = str(EVO(options, through=throughs, escape=escapes, inverse=numbers[0] > numbers[1], double=double).evo(numbers[0], numbers[1]))
-            #     except Exception as e:
-            #         last_massage[msg.from_user.id] = ("evo", )
-            #         log(msg, ('Команда /evo:', f'ОШИБКА - {e}'), error=True)
-            #         await msg.reply("Что-то пошло не так")
-            #         return None
-            #     log(msg, ('Команда /evo выполнила свою работу', ))
-            #     await msg.reply(out)
-            #     return None
 
     last_massage[msg.from_user.id] = ("empty", )
     log(msg, ('Пустое сообщение:', msg.text))
