@@ -1,4 +1,4 @@
-from aiogram import Router
+from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 
@@ -54,34 +54,73 @@ def decode(text):
 
 
 @router_coding.message(Command("encode"))
-async def encoding(msg: Message, command: CommandObject):
+async def encoding(msg: Message, command: CommandObject, bot: Bot):
 
     user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
     if user:
-        log(msg, user)
+        await log(msg, user, bot)
 
     if msg.from_user.id not in last_massage.keys() or last_massage[msg.from_user.id] != ("encode", True):
         last_massage[msg.from_user.id] = ("encode", True)
-        log(msg, ('Команда /encode начала свою работу', ))
+        await log(msg, ('Команда /encode начала свою работу', ), bot)
         await msg.reply("Вводите сообщения, которые хотите зашифровать. Чтобы закончить зашифровку сообщений, введите команду ещё раз")
         return None
     last_massage[msg.from_user.id] = ("encode", )
-    log(msg, ('Команда /encode закончила свою работу:', ))
+    await log(msg, ('Команда /encode закончила свою работу:', ), bot)
     await msg.reply("Зашифровка сообщений закончена")
+    return None
 
 
 @router_coding.message(Command("decode"))
-async def encoding(msg: Message, command: CommandObject):
+async def encoding(msg: Message, command: CommandObject, bot: Bot):
     
     user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
     if user:
-        log(msg, user)
+        await log(msg, user, bot)
 
     if msg.from_user.id not in last_massage.keys() or last_massage[msg.from_user.id] != ("decode", True):
         last_massage[msg.from_user.id] = ("decode", True)
-        log(msg, ('Команда /decode начала свою работу', ))
+        await log(msg, ('Команда /decode начала свою работу', ), bot)
         await msg.reply("Вводите сообщения, которые хотите расшифровать. Чтобы закончить расшифровку сообщений, введите команду ещё раз")
         return None
     last_massage[msg.from_user.id] = ("encode", )
-    log(msg, ('Команда /decode закончила свою работу:', ))
+    await log(msg, ('Команда /decode закончила свою работу:', ), bot)
     await msg.reply("Расшифровка сообщений закончена")
+    return None
+
+
+async def encode_words(msg, bot):
+    text = msg.text.replace('<', '').replace('>', '')
+    if not text:
+        await log(msg, ('Команда /encode не получила текста',), bot)
+        await msg.reply("Нужно ввести текст для зашифровки")
+        return None
+    try:
+        out = encode(text)
+    except Exception as e:
+        await log(msg, ('Команда /encode:', f'ОШИБКА - {e}, запрос - {msg.text}'), bot, error=True)
+        await msg.reply("Что-то пошло не так")
+        return None
+    await log(msg, ('Команда /encode выполнила свою работу:', text), bot)
+    await msg.reply(out)
+    return None
+
+
+async def decode_words(msg, bot):
+    if not msg.text:
+            await log(msg, ('Команда /decode не получила текста',), bot)
+            await msg.reply("Нужно ввести текст для расшифровки")
+            return None
+    try:
+        out = decode(msg.text).replace('<', '').replace('>', '')
+        if not out:
+            await log(msg, ('Команда /decode оставила пустое сообщение',), bot)
+            await msg.reply('Сообщение оказалось пустым')
+            return None
+    except Exception as e:
+        await log(msg, ('Команда /decode:', f'ОШИБКА - {e}, запрос - {msg.text}'), bot, error=True)
+        await msg.reply("Что-то пошло не так")
+        return None
+    await log(msg, ('Команда /decode выполнила свою работу:', msg.text), bot)
+    await msg.reply(out)
+    return None
