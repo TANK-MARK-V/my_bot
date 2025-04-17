@@ -10,7 +10,7 @@ from logs import do_log as log
 from users import get_users
 from config import last_massage
 from free_handler import free_handler
-from help import shorter
+from scripts.help import shorter
 
 
 router_atom = Router()
