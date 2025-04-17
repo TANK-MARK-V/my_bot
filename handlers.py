@@ -3,49 +3,49 @@ from aiogram.types import Message
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from random import sample
+
 from config import COMMANDS, info, LEVELS, last_massage
 from logs import do_log as log
 
-from STI import sti
-from coding import encode, decode
 from users import get_users
-from EVO import answer_step
 
 router = Router()
 
 #                                                                                   Старт
 @router.message(CommandStart())
-async def start_handler(msg: Message):
+async def start_handler(msg: Message, bot: Bot):
     
     user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
     if user:
-        log(msg, user)
+        await log(msg, user, bot)
 
     last_massage[msg.from_user.id] = ("start", )
-    log(msg, ('команда /start',))
-    await msg.answer('Чтобы узнать, что я умею используй "/info"')
+    await log(msg, ('Команда /start',), bot)
+    await msg.answer('Чтобы узнать, что я умею, используй "/info"')
+    return None
 
 #                                                                           Информация о командах
 @router.message(Command("info"))
-async def information(msg: Message, command: CommandObject):
+async def information(msg: Message, command: CommandObject, bot: Bot):
     
     user = get_users(msg=msg, info=msg.from_user.username)  # Получение информации о пользователе
     
     if command.args and command.args in COMMANDS['__names__']:
-        log(msg, (f'команда /info {command.args}',))
+        await log(msg, (f'Команда /info {command.args}',), bot)
         await msg.reply(info(command=command.args))
         return None
     if command.args and command.args in COMMANDS['__admin_names__']:
         if user[2] >= LEVELS[command.args]:
             last_massage[msg.from_user.id] = ("info_one", )
-            log(msg, (f'команда /info {command.args}',))
+            await log(msg, (f'Команда /info {command.args}',), bot)
             await msg.reply(info(command=command.args))
             return None
         else:
-            log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {LEVELS[command.args]}', ))
+            await log(msg, (f'Пользователь обладает правами администратора уровня {user[2]}, нужен {LEVELS[command.args]}', ), bot)
             await msg.reply(f"Вы не обладаете нужными правами администратора")
             return None
-    log(msg, ('команда /info',))
+    await log(msg, ('Команда /info',), bot)
     builder = InlineKeyboardBuilder()
     for command in COMMANDS["__names__"]:
         builder.add(types.InlineKeyboardButton(
@@ -66,96 +66,53 @@ async def information(msg: Message, command: CommandObject):
     builder.adjust(*grid)
     last_massage[msg.from_user.id] = ("info", )
     await msg.reply("Выберете нужную команду", reply_markup=builder.as_markup())
-
+    return None
 
 
 @router.callback_query(F.data.startswith("command_"))
-async def send_info(callback: types.CallbackQuery):
-    log(callback, (f'Выбран вариант {callback.data}',))
+async def send_info(callback: types.CallbackQuery, bot: Bot):
+    await log(callback, (f'Выбран вариант {callback.data}',), bot)
     await callback.message.answer(info(callback.data.replace("command_", '')))
     await callback.answer()
+    return None
 
 
-#                                                                               Всё остальное
-@router.message()
-async def message_handler(msg: Message, bot: Bot):
-    global last_massage
+@router.message(Command('cancel'))
+@router.message(Command('stop'))
+async def stop(msg: Message, bot: Bot):
     
     user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
     if user:
-        log(msg, user)
+        await log(msg, user, bot)
+
+    last_massage[msg.from_user.id] = (None, )
+    await log(msg, ('Пользователь отменил команду',), bot)
+    return None
+
+
+#                                                                                   Рандомное число
+@router.message(Command('random'))
+async def start_handler(msg: Message, command: CommandObject, bot: Bot):
     
-    if msg.from_user.id in last_massage.keys():
-        last = last_massage[msg.from_user.id]
-        if last[0] == "chat" and len(last) > 1:
-            wanted = last[1]
-            log(msg, (f'/admin_chat - пользователь написал другому пользователю:', msg.text))
-            await bot.send_message(wanted[0], msg.text) 
-            await msg.reply(f"Сообщение успешно отправлено")
-            return None
-        
-        if last[0] == "encode" and len(last) > 1:
-            text = msg.text
-            if '<' in text:
-                text = text.replace('<', '')
-            if '>' in text:
-                text = text.replace('>', '')
-            if not text:
-                log(msg, ('Команда /encode не получила текста',))
-                await msg.reply("Нужно ввести текст для зашифровки")
-                return None
-            try:
-                out = encode(text)
-            except Exception as e:
-                log(msg, ('Команда /encode:', f'ОШИБКА - {e}, запрос - {msg.text}'), error=True)
-                await msg.reply("Что-то пошло не так")
-                return None
-            log(msg, ('Команда /encode выполнила свою работу:', text))
-            await msg.reply(out)
-            return None
-        
-        if last[0] == "decode" and len(last) > 1:
-            if not msg.text:
-                    log(msg, ('Команда /decode не получила текста',))
-                    await msg.reply("Нужно ввести текст для расшифровки")
-                    return None
-            try:
-                out = decode(msg.text)
-                if '<' in out:
-                    out = out.replace('<', '')
-                if '>' in out:
-                    out = out.replace('>', '')
-                if not out:
-                    log(msg, ('Команда /decode оставила пустое сообщение',))
-                    await msg.reply('Сообщение оказалось пустым')
-                    return None
-            except Exception as e:
-                log(msg, ('Команда /decode:', f'ОШИБКА - {e}, запрос - {msg.text}'), error=True)
-                await msg.reply("Что-то пошло не так")
-                return None
-            log(msg, ('Команда /decode выполнила свою работу:', msg.text))
-            await msg.reply(out)
-            return None
-        
-        if last[0] == "sti" and len(last) > 1 and msg.text in ('0', '1', '-'):
-            args = last[1].copy()
-            if msg.text in ('0', '1'):
-                args.append(msg.text)
-            try:
-                out = sti(*args)
-            except Exception as e:
-                last_massage[msg.from_user.id] = ("sti", )
-                log(msg, ('Команда /sti:', f'ОШИБКА - {e}, запрос - {args[0]}'), error=True)
-                await msg.reply("Что-то пошло не так")
-                return None
-            log(msg, ('Команда /sti выполнила свою работу:', args[0]))
-            await msg.reply(out)
-            return None
+    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
+    if user:
+        await log(msg, user, bot)
 
-        if last[0] == 'evo' and len(last) > 1:
-            await answer_step(last, msg)
-            return None
-
-    last_massage[msg.from_user.id] = ("empty", )
-    log(msg, ('Пустое сообщение:', msg.text))
-    await msg.answer(f"Твой ID, имя, фамилия и username: {msg.from_user.id}, {msg.from_user.full_name}, {msg.from_user.username},")
+    if command.args:
+        try:
+            nums = tuple(map(int, command.args.split()))
+            if len(nums) == 2:
+                nums = (nums[0], nums[1] + 1, 1)
+            elif len(nums) == 1:
+                nums = (0, nums[0] + 1, 1)
+        except Exception as e:
+            print(e)
+            await log(msg, ('Команда /random не получила чисел', command.args), bot)
+            nums = (0, 2, 1)
+    else:
+        nums = (0, 2, 1)
+    last_massage[msg.from_user.id] = ("random", )
+    await log(msg, ('Команда /random',), bot)
+    text = ', '.join(map(str, sorted(sample(range(*nums[:2]), k=nums[2]))))
+    await msg.reply(text)
+    return None
