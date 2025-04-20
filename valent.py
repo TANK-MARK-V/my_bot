@@ -2,21 +2,22 @@ from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
 
-from config import last_massage
+from config import autorisation, last_massage
 from logs import do_log as log
 
 import random
-from users import get_users
 
 router_val = Router()
 
 
 @router_val.message(Command('valentine'))
 async def start_handler(msg: Message, bot: Bot):
+
+    last_massage[msg.from_user.id] = ("valentine",)
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     selebr = random.choice(["ты — мой личный сорт счастья! С Днём святого Валентина!",
             "влюбляться в тебя — моё любимое занятие. С праздником!",
@@ -31,8 +32,6 @@ async def start_handler(msg: Message, bot: Bot):
             "ты как последний урок в пятницу, всегда жду с нетерпением. С 14 февраля!",
             "ты как пятерка по очень сложному предмету, даришь невероятные эмоции. С праздником!",
             "познакомиться с тобой это как урвать последнюю вкусную булочку в столовой. С Днём святого Валентина!"])
-
-    last_massage[msg.from_user.id] = ("valentine", )
 
     personal = f'{msg.from_user.first_name}, {selebr}'
     await log(msg, ('команда /valentine', personal), bot)

@@ -5,8 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from logs import do_log as log
-from users import get_users
-from config import last_massage
+from config import autorisation, last_massage
 from free_handler import free_handler
 
 from scripts.EVO.EVO import EVO
@@ -23,13 +22,13 @@ class RequestEVO(StatesGroup):
 
 @router_evo.message(Command("evo"))
 async def starting(msg: Message, bot: Bot, state: FSMContext):
-    
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
-    
+
     last_massage[msg.from_user.id] = ("evo", )
 
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
+    
     await log(msg, ('Команда /evo начала свою работу', ), bot)
     await msg.reply("Введите команды")
     await state.set_state(RequestEVO.options)
@@ -39,9 +38,9 @@ async def starting(msg: Message, bot: Bot, state: FSMContext):
 @router_evo.message(RequestEVO.options)
 async def get_options(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if last_massage[msg.from_user.id] != ("evo", ):
         await state.clear()
@@ -77,9 +76,9 @@ async def get_options(msg: Message, bot: Bot, state: FSMContext):
 @router_evo.message(RequestEVO.numbers)
 async def get_numbers(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
     
     if last_massage[msg.from_user.id] != ("evo", ):
         await state.clear()
@@ -107,9 +106,9 @@ async def get_numbers(msg: Message, bot: Bot, state: FSMContext):
 @router_evo.message(RequestEVO.throughs)
 async def get_throughs(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if last_massage[msg.from_user.id] != ("evo", ):
         await state.clear()
@@ -136,9 +135,9 @@ async def get_throughs(msg: Message, bot: Bot, state: FSMContext):
 @router_evo.message(RequestEVO.escapes)
 async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if last_massage[msg.from_user.id] != ("evo", ):
         await state.clear()
@@ -170,9 +169,9 @@ async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
 @router_evo.message(RequestEVO.double)
 async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if last_massage[msg.from_user.id] != ("evo", ):
         await state.clear()
@@ -196,11 +195,9 @@ async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
     try:
         out = str(EVO(options, through=throughs, escape=escapes, inverse=numbers[0] > numbers[1], double=double).evo(numbers[0], numbers[1]))
     except Exception as e:
-        last_massage[msg.from_user.id] = ("evo", )
         await log(msg, ('Команда /evo:', f'ОШИБКА - {e}'), bot, error=True)
         await msg.reply("Что-то пошло не так")
         return None
-    last_massage[msg.from_user.id] = ("evo", )
     await log(msg, ('Команда /evo выполнила свою работу', ), bot)
     await msg.reply(out)
     await state.clear()

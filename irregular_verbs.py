@@ -10,25 +10,11 @@ from aiogram.filters.callback_data import CallbackData
 from random import choice, sample
 
 from logs import do_log as log
-from users import get_users, set_score, get_score
-from config import last_massage
+from users import set_score, get_score
+from config import autorisation, last_massage
 from free_handler import free_handler
+from scripts.Verbs import kinds_of_verbs, read_verbs, INFO
 
-import csv
-
-INFO = {'en': 'глаголы в третьей форме кончаются на -en',
-        'ne': 'глаголы в третьей форме кончаются на -ne',
-        'd/t': 'в третьей форме буква t, стоящая в конце первой формы, заменяется на d',
-        '+t': 'добавляется окончание -t во второй и третьей форме',
-        'double': 'в первой форме стоят две одинаковые буквы подряд',
-        'ell': 'первая форма кончается на -ell',
-        'ay': 'первая форма кончается на -ay',
-        'ught': 'вторая и третья формы кончаются на -ught',
-        'three': 'формы не отличаются друг от друга',
-        'ew': 'вторая форма кончается на -ew',
-        'i_a_u': 'буква "i" в первой форме, "a" во второй и "u" в третьей стоят в том же месте',
-        'pairs': 'глаголы, похожие на друг друга или имеющие большую общую часть',
-        'else': 'всё остальное'}
 router_verbs = Router()
 
 
@@ -44,112 +30,14 @@ class RequestVerbs(StatesGroup):
     test = State()
 
 
-def read_verbs(delim='-'):
-    words = ([], [], [])
-    with open('data/words.csv', 'r', newline='') as file:
-        word_reader = csv.reader(file, delimiter=delim)
-        for base, past, part in tuple(word_reader)[1:]:
-            if base not in words[0] and past not in words[1] and part not in words[2]:
-                words[0].append(base)
-                words[1].append(past)
-                words[2].append(part)
-    return words
-
-
-def sorting_verbs(words):
-    lines = []
-    for i in range(len(words[0])):
-        lines.append(f'{words[0][i]} {words[1][i]} {words[2][i]}')
-    lines.sort()
-    lines = tuple(map(lambda x: x.split(), lines))
-    new_words = ([], [], [])
-    for base, past, part in lines:
-        new_words[0].append(base)
-        new_words[1].append(past)
-        new_words[2].append(part)
-    return new_words
-
-
-def write_verbs(new_words=([], [], []), delim='-'):
-    words = read_verbs()
-    words = sorting_verbs((words[0] + new_words[0], words[1] + new_words[1], words[2] + new_words[2]))
-    with open('data/words.csv', 'w', newline='') as file:
-        word_writer = csv.writer(file, delimiter=delim)
-        word_writer.writerow(['Base', 'Past', 'Participle'])
-        for i in range(len(words[0])):
-            word_writer.writerow([words[0][i].lower(), words[1][i].lower(), words[2][i].lower()])
-
-
-def kinds_of_verbs():
-    words = read_verbs()
-    
-    kinds = {'en': [], 'ne': [], 'd/t': [], '+t': [], 'double': [], 'ell': [], 'ay': [], 'ught': [], 'three': [], 'ew': [], 'i_a_u': [], 'pairs': [], 'else': []}
-
-    for i in range(len(words[0])):
-        line = f'{words[0][i]} - {words[1][i]} - {words[2][i]}'
-
-        if 'come' in words[0][i] or 'wear' in words[0][i] or 'stand' in words[0][i] or 'get' in words[0][i] or 'give' in words[0][i]:
-            kinds['pairs'].append(line)
-            continue
-
-        if len({words[0][i], words[1][i], words[2][i]}) == 1:
-            kinds['three'].append(line)
-            continue
-
-        if len({words[0][i], words[1][i], words[2][i]}) == 2:
-            if words[2][i][-4:] == 'ught':
-                kinds['ught'].append(line)
-                continue
-
-            if words[2][i][-1] == 't':
-                if words[0][i][:2] == words[1][i][:2] and words[0][i][:2] + words[0][i][3] == words[1][i][:3]:
-                    kinds['double'].append(line)
-                    continue
-                if words[0][i][-1] == 'd':
-                    kinds['d/t'].append(line)
-                    continue
-                if len(words[0][i]) + 1 == len(words[2][i]):
-                    kinds['+t'].append(line)
-                    continue
-            
-            if words[2][i][-1] == 'd':
-                if words[0][i][-3:] == 'ell':
-                    kinds['ell'].append(line)
-                    continue
-                if words[0][i][-2:] == 'ay':
-                    kinds['ay'].append(line)
-                    continue
-        
-        if words[2][i][-2:] == 'en':
-            kinds['en'].append(line)
-            continue
-        if words[2][i][-2:] == 'ne':
-            kinds['ne'].append(line)
-            continue
-        if words[1][i][-2] == 'e' and words[2][i][-1] == 'n':
-            kinds['ew'].append(line)
-            continue
-        if 'i' in words[0][i] and 'a' in words[1][i] and 'u' in words[2][i]:
-            kinds['i_a_u'].append(line)
-            continue
-        if words[2][i][-2:] == 'ne':
-            kinds['ne'].append(line)
-            continue
-
-        kinds['else'].append(line)
-
-    return kinds
-
-
 @router_verbs.message(Command("verbs"))
-async def starting(msg: Message, bot: Bot, state: FSMContext):
-    global INFO
-    
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+async def starting(msg: Message, bot: Bot):
 
-    last_massage[msg.from_user.id] = ('verbs', )
+    last_massage[msg.from_user.id] = ("verbs",)
+
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     await log(msg, ('Команда /verbs начала свою работу', ), bot)
     builder = InlineKeyboardBuilder()
@@ -163,8 +51,15 @@ async def starting(msg: Message, bot: Bot, state: FSMContext):
 
 @router_verbs.callback_query(VerbsCallback.filter(F.start == "mode_"))
 async def get_table(callback: types.CallbackQuery, callback_data: VerbsCallback, bot: Bot, state: FSMContext):
+
+    result = await autorisation(bot, callback=callback)  # Авторизация пользователя
+    if not result:
+        return None
+
     await log(callback, (f"Выбран вариант {callback_data.mode}",), bot)
+
     if callback_data.mode == 1:
+        last_massage[callback.from_user.id] = ("verbs",)
         await log(callback, ('Команда /verbs вывела все глаголы',), bot)
         kinds = kinds_of_verbs()
         for key in kinds.keys():
@@ -175,13 +70,17 @@ async def get_table(callback: types.CallbackQuery, callback_data: VerbsCallback,
         await state.clear()
         await callback.answer()
         return None
+    
     elif callback_data.mode == 2:
+        last_massage[callback.from_user.id] = ("verbs", "test")
         verbs = read_verbs()
         await log(callback, ('Команда /verbs попросила ввести число глаголов',), bot)
         await callback.message.answer(f"Введите число глаголов, из которых будет составлен тест. Это может быть число от 1 до {len(verbs[0])}")
         await state.set_state(RequestVerbs.number)
         await callback.answer()
         return None
+    
+    last_massage[callback.from_user.id] = ("verbs",)
     table = get_score('verbs')
     leest, nums = [], sorted(table.keys())[::-1]
     for i in range(len(nums)):
@@ -201,11 +100,11 @@ async def get_table(callback: types.CallbackQuery, callback_data: VerbsCallback,
 @router_verbs.message(RequestVerbs.number)
 async def get_number(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
-    if last_massage[msg.from_user.id] != ("verbs", ):
+    if last_massage[msg.from_user.id] != ("verbs", "test"):
         await state.clear()
         await free_handler(msg, bot)
         return None
@@ -234,11 +133,11 @@ async def get_number(msg: Message, bot: Bot, state: FSMContext):
 @router_verbs.message(RequestVerbs.test)
 async def check_answer(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
     
-    if last_massage[msg.from_user.id] != ("verbs", ):
+    if last_massage[msg.from_user.id] != ("verbs", "test"):
         await state.clear()
         await free_handler(msg, bot)
         return None

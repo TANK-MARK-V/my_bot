@@ -5,10 +5,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 
-
 from logs import do_log as log
-from users import get_users
-from config import last_massage
+from config import autorisation, last_massage
 from free_handler import free_handler
 from scripts.help import shorter
 
@@ -21,16 +19,14 @@ class RequestATOM(StatesGroup):
     mass = State()
 
 
-
 @router_atom.message(Command("atom"))
 async def starting(msg: Message, bot: Bot, state: FSMContext):
-    global INFO
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    last_massage[msg.from_user.id] = ("atom",)
 
-    last_massage[msg.from_user.id] = ('atom', )
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     await log(msg, ('Команда /atom начала свою работу', ), bot)
     await msg.reply('Введите обозначение, массовое число (цифра сверху) и порядковый номер (цифра снизу) через пробел. Например, для лития нужно ввести "Li 6 3"')
@@ -42,9 +38,9 @@ async def starting(msg: Message, bot: Bot, state: FSMContext):
 @router_atom.message(RequestATOM.atom)
 async def get_atom(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if last_massage[msg.from_user.id] != ("atom", ):
         await state.clear()
@@ -68,14 +64,15 @@ async def get_atom(msg: Message, bot: Bot, state: FSMContext):
 @router_atom.message(RequestATOM.mass)
 async def get_mass(msg: Message, bot: Bot, state: FSMContext):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
     
     if last_massage[msg.from_user.id] != ("atom", ):
         await state.clear()
         await free_handler(msg, bot)
         return None
+    
     data = await state.get_data()
     A, Z, N = data['atom']['A'], data['atom']['Z'], data['atom']['N']
     try:
@@ -87,8 +84,8 @@ async def get_mass(msg: Message, bot: Bot, state: FSMContext):
         await log(msg, ('/atom - пользователь не передал нужную информацию', msg.text), bot)
         await msg.reply('Напишите массу ядра в а.е.м. (единицу измерения писать не нужно). Она должна быть дана в условии - в ином случае введите "-"')
         return None
+    
     m_p, m_n, m_a = 1.6726, 1.6749, 1.6606
-
 
     text = 'Решение: E(св.) = (Z * Mp + N * Mn - Mя) * С^2\n'
     text += f'Е(св.) = ({Z} * {m_p} * 10^-27 кг + {N} * {m_n} * 10^-27 кг - {mass} * {m_a} * 10^-27 кг) * (3 * 10^8 м/с)^2 =\n'

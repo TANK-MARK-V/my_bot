@@ -3,8 +3,7 @@ from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 
 from logs import do_log as log
-from users import get_users
-from config import last_massage
+from config import autorisation, last_massage
 
 router_coding = Router()
 
@@ -56,9 +55,9 @@ def decode(text):
 @router_coding.message(Command("encode"))
 async def encoding(msg: Message, command: CommandObject, bot: Bot):
 
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if msg.from_user.id not in last_massage.keys() or last_massage[msg.from_user.id] != ("encode", True):
         last_massage[msg.from_user.id] = ("encode", True)
@@ -74,9 +73,9 @@ async def encoding(msg: Message, command: CommandObject, bot: Bot):
 @router_coding.message(Command("decode"))
 async def encoding(msg: Message, command: CommandObject, bot: Bot):
     
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if msg.from_user.id not in last_massage.keys() or last_massage[msg.from_user.id] != ("decode", True):
         last_massage[msg.from_user.id] = ("decode", True)

@@ -1,11 +1,10 @@
 from aiogram import Router, Bot
 from aiogram.types import Message
 
-from config import last_massage
+from config import autorisation, last_massage
 from logs import do_log as log
 
 from coding import encode_words, decode_words
-from users import get_users
 
 free_router = Router()
 
@@ -13,23 +12,21 @@ free_router = Router()
 @free_router.message()
 async def free_handler(msg: Message, bot: Bot):
 
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if not msg.text:
         await log(msg, (f'Пользователь отправил "пустое" сообщение', ), bot)
-        await msg.reply(f"Извини, я могу читать только сообщения")
+        await msg.reply(f"Извини, я могу читать только текстовые сообщения")
         return None
-    
-    global last_massage
     
     if msg.from_user.id in last_massage.keys():
         last = last_massage[msg.from_user.id]
         if last[0] == "chat" and len(last) > 1:
             wanted = last[1]
             await log(msg, (f'/chat - пользователь написал другому пользователю:', msg.text), bot)
-            await bot.send_message(wanted[0], msg.text.replace('<', '').replace('>', '')) 
+            await bot.send_message(wanted["id"], msg.text.replace('<', '').replace('>', '')) 
             await msg.reply(f"Сообщение успешно отправлено")
             return None
         

@@ -5,15 +5,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters.callback_data import CallbackData
 
 from logs import do_log as log
-from users import get_users
-from config import last_massage
+from config import autorisation, last_massage
 
 from scripts.STI import sti
 router_sti = Router()
 
 
 class STICallback(CallbackData, prefix='sti'):
-    start: str
     primer: str
     need: str
 
@@ -37,12 +35,12 @@ def bracket_check(test_string):
 
 @router_sti.message(Command("sti"))
 async def starting(msg: Message, command: CommandObject, bot: Bot):
-    
-    user = get_users(msg=msg)  # Проверка на наличие пользователя в базе данных
-    if user:
-        await log(msg, user, bot)
-    
-    last_massage[msg.from_user.id] = ("sti", )
+
+    last_massage[msg.from_user.id] = ("sti",)
+
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
 
     if not command.args:
         await log(msg, ('Команда /sti не получила аргументов',), bot)
@@ -60,9 +58,9 @@ async def starting(msg: Message, command: CommandObject, bot: Bot):
     await log(msg, ('Команда /sti получила логическое выражение', command.args), bot)
 
     builder = InlineKeyboardBuilder()
-    builder.add(types.InlineKeyboardButton(text='Вывести только 0', callback_data=STICallback(start= 'print_', primer=command.args, need='0').pack()))
-    builder.add(types.InlineKeyboardButton(text='Вывести только 1', callback_data=STICallback(start= 'print_', primer=command.args, need='1').pack()))
-    builder.add(types.InlineKeyboardButton(text='Вывести таблицу целиком', callback_data=STICallback(start= 'print_', primer=command.args, need='').pack()))
+    builder.add(types.InlineKeyboardButton(text='Вывести только 0', callback_data=STICallback(primer=command.args, need='0').pack()))
+    builder.add(types.InlineKeyboardButton(text='Вывести только 1', callback_data=STICallback(primer=command.args, need='1').pack()))
+    builder.add(types.InlineKeyboardButton(text='Вывести таблицу целиком', callback_data=STICallback(primer=command.args, need='').pack()))
     builder.adjust(1, 1, 1)
     await msg.reply('Выберите, какую часть таблицы нужно вывести', reply_markup=builder.as_markup())
     return None
@@ -70,6 +68,13 @@ async def starting(msg: Message, command: CommandObject, bot: Bot):
 
 @router_sti.callback_query(STICallback.filter())
 async def get_table(callback: types.CallbackQuery, callback_data: STICallback, bot: Bot):
+
+    last_massage[callback.from_user.id] = ("sti",)
+
+    result = await autorisation(bot, callback=callback)  # Авторизация пользователя
+    if not result:
+        return None
+
     await log(callback, (f"Выбран вариант {'вывести только ' + callback_data.need if callback_data.need else 'вывести целиком'}",), bot)
     args = [callback_data.primer, callback_data.need]
     try:
