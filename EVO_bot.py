@@ -5,8 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from logs import do_log as log
-from config import autorisation, last_massage
-from free_handler import free_handler
+from config import autorisation
 
 from scripts.EVO.EVO import EVO
 router_evo = Router()
@@ -23,8 +22,6 @@ class RequestEVO(StatesGroup):
 @router_evo.message(Command("evo"))
 async def starting(msg: Message, bot: Bot, state: FSMContext):
 
-    last_massage[msg.from_user.id] = ("evo", )
-
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
         return None
@@ -40,11 +37,6 @@ async def get_options(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
-        return None
-
-    if last_massage[msg.from_user.id] != ("evo", ):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
 
     options = msg.text.split('\n')
@@ -79,11 +71,6 @@ async def get_numbers(msg: Message, bot: Bot, state: FSMContext):
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
         return None
-    
-    if last_massage[msg.from_user.id] != ("evo", ):
-        await state.clear()
-        await free_handler(msg, bot)
-        return None
 
     numbers = msg.text.split(' ')
     if len(numbers) != 2:
@@ -110,11 +97,6 @@ async def get_throughs(msg: Message, bot: Bot, state: FSMContext):
     if not result:
         return None
 
-    if last_massage[msg.from_user.id] != ("evo", ):
-        await state.clear()
-        await free_handler(msg, bot)
-        return None
-
     throughs = None if msg.text == '-' else msg.text.split(' ')
     if throughs:
         try:
@@ -137,11 +119,6 @@ async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
-        return None
-
-    if last_massage[msg.from_user.id] != ("evo", ):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
 
     if msg.text[0] == '+':
@@ -171,11 +148,6 @@ async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
-        return None
-
-    if last_massage[msg.from_user.id] != ("evo", ):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
 
     double = 0 if msg.text == '-' else msg.text

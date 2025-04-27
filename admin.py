@@ -6,10 +6,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 
-from config import autorisation, last_massage, LEVELS
+from config import autorisation, LEVELS
 from logs import do_log as log
 from users import get_user_list, find_user, update_user
-from free_handler import free_handler
 from scripts.Verbs import write_verbs
 from scripts.Lolgen.Lolgen import deleting
 
@@ -19,7 +18,8 @@ import datetime
 router_admin = Router()
 
 
-class RequestData(StatesGroup):
+class RequestAdmin(StatesGroup):
+    chat = State()
     verbs = State()
     id = State()
     user = State()
@@ -29,8 +29,6 @@ class RequestData(StatesGroup):
 #                                                                               Получить уровень доступа
 @router_admin.message(Command("admin"))
 async def admin(msg: Message, bot: Bot):
-
-    last_massage[msg.from_user.id] = ("admin", )
 
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
@@ -46,8 +44,6 @@ async def admin(msg: Message, bot: Bot):
 @router_admin.message(Command("users"))
 async def user_list(msg: Message, bot: Bot):
 
-    last_massage[msg.from_user.id] = ("users", )
-
     result = await autorisation(bot, msg=msg, need=LEVELS["users"])  # Авторизация пользователя
     if not result:
         return None
@@ -61,17 +57,19 @@ async def user_list(msg: Message, bot: Bot):
 
 #                                                                               Написать пользователю
 @router_admin.message(Command("chat"))
-async def admin_chat(msg: Message, command: CommandObject, bot: Bot):
+async def admin_chat(msg: Message, command: CommandObject, bot: Bot, state: FSMContext):
 
     result = await autorisation(bot, msg=msg, need=LEVELS["chat"])  # Авторизация пользователя
     if not result:
         return None
+
+    if "chat" in (await state.get_data()).keys():
+        await log(msg, (f'/chat - пользователь закончил чат', ), bot)
+        await msg.reply(f"Сообщения больше не отправляются")
+        await state.clear()
+        return None
     
     if not command.args:
-        if msg.from_user.id in last_massage.keys() and last_massage[msg.from_user.id][0] == "chat" and len(last_massage[msg.from_user.id]) > 1:
-            await log(msg, (f'/chat - пользователь закончил чат', ), bot)
-            await msg.reply(f"Сообщения больше не отправляются")
-            return None
         await log(msg, (f'/chat - пользователь не передал информацию о пользователе', ), bot)
         await msg.reply(f"Не была указана информация о пользователе")
         return None
@@ -80,20 +78,32 @@ async def admin_chat(msg: Message, command: CommandObject, bot: Bot):
     if not wanted:
         await log(msg, (f'/chat - нужный пользователь не существует:', command.args), bot)
         await msg.reply(f"Такого пользователя не существует")
-        return None
+        return None    
     
-    last_massage[msg.from_user.id] = ("chat", wanted)
+    await state.update_data(chat=wanted)
     await log(msg, (f'/chat - пользователь начал чат с другим пользователем:', wanted["id"] + ' ~~~ ' + wanted["username"]), bot)
     await msg.reply(f'Пользователь @{wanted["username"]} найден. Напишите сообщение')
+    await state.set_state(RequestAdmin.chat)
     return None
 
+
+@router_admin.message(RequestAdmin.chat)
+async def coding(msg: Message, bot: Bot, state: FSMContext):
+
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
+
+    wanted = (await state.get_data())["chat"]
+    await bot.send_message(wanted["id"], msg.text.replace('<', '').replace('>', ''))
+    await log(msg, (f'/chat - пользователь написал другому пользователю:', msg.text), bot)
+    await msg.reply(f"Сообщение успешно отправлено")
+    return None
 
 
 #                                                                               Получить логи пользователя
 @router_admin.message(Command("logs"))
 async def admin_logs(msg: Message, command: CommandObject, bot: Bot):
-    
-    last_massage[msg.from_user.id] = ("logs", )
 
     result = await autorisation(bot, msg=msg, need=LEVELS["logs"])  # Авторизация пользователя
     if not result:
@@ -125,8 +135,6 @@ async def admin_logs(msg: Message, command: CommandObject, bot: Bot):
 #                                                                               Получить ошибки пользователя
 @router_admin.message(Command("errors"))
 async def admin_errors(msg: Message, command: CommandObject, bot: Bot):
-    
-    last_massage[msg.from_user.id] = ("errors", )
 
     result = await autorisation(bot, msg=msg, need=LEVELS["errors"])  # Авторизация пользователя
     if not result:
@@ -158,8 +166,6 @@ async def admin_errors(msg: Message, command: CommandObject, bot: Bot):
 
 @router_admin.message(Command("ban"))
 async def data(msg: Message, command: CommandObject, bot: Bot):
-    
-    last_massage[msg.from_user.id] = ("ban", )
 
     result = await autorisation(bot, msg=msg, need=LEVELS["data"])  # Авторизация пользователя
     if not result:
@@ -194,8 +200,6 @@ async def data(msg: Message, command: CommandObject, bot: Bot):
 #                                                                               Работа с файлами
 @router_admin.message(Command("data"))
 async def data(msg: Message, bot: Bot):
-
-    last_massage[msg.from_user.id] = ("data", )
     
     result = await autorisation(bot, msg=msg, need=LEVELS["data"])  # Авторизация пользователя
     if not result:
@@ -221,32 +225,24 @@ async def changer(callback: types.CallbackQuery, bot: Bot, state: FSMContext):
     await log(callback, (f'Выбран вариант {callback.data}',), bot)
     await callback.answer()
     if callback.data == 'change_verbs':
-        last_massage[callback.from_user.id] = ("data", "verbs")
         await callback.message.answer(f"Введите слова, которые нужно добавить")
-        await state.set_state(RequestData.verbs)
+        await state.set_state(RequestAdmin.verbs)
         return None
     if callback.data == 'change_users':
-        last_massage[callback.from_user.id] = ("data", "users")
         await callback.message.answer(f"Введите id или username пользователя")
-        await state.set_state(RequestData.id)
+        await state.set_state(RequestAdmin.id)
         return None
     if callback.data == 'change_words':
-        last_massage[callback.from_user.id] = ("data", "words")
         await callback.message.answer(f"Введите слово, которое хотите удалить")
-        await state.set_state(RequestData.words)
+        await state.set_state(RequestAdmin.words)
         return None
     
 
-@router_admin.message(RequestData.verbs)
+@router_admin.message(RequestAdmin.verbs)
 async def get_verbs(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg, need=LEVELS["data"])  # Авторизация пользователя
     if not result:
-        return None
-    
-    if last_massage[msg.from_user.id] != ("data", "verbs"):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
     
     text = msg.text.split('_')
@@ -264,19 +260,15 @@ async def get_verbs(msg: Message, bot: Bot, state: FSMContext):
         return None
     await log(msg, ('Команда /data - verbs выполнила свою работу', ), bot)
     await msg.reply('Глаголы были успешно добавлены')
+    await state.clear()
     return None
 
 
-@router_admin.message(RequestData.id)
+@router_admin.message(RequestAdmin.id)
 async def get_id(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg, need=LEVELS["data"])  # Авторизация пользователя
     if not result:
-        return None
-
-    if last_massage[msg.from_user.id] != ("data", "users"):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
     
     print(msg.text)
@@ -288,29 +280,24 @@ async def get_id(msg: Message, bot: Bot, state: FSMContext):
     await log(msg, ('Команда /data получила данные о пользователе', msg.text), bot)
     await msg.reply('Введите изменения')
     await state.update_data(id=wanted['id'])
-    await state.set_state(RequestData.user)
+    await state.set_state(RequestAdmin.user)
     return None
 
 
-@router_admin.message(RequestData.user)
+@router_admin.message(RequestAdmin.user)
 async def get_user(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg, need=LEVELS["data"])  # Авторизация пользователя
     if not result:
-        return None
-
-    if last_massage[msg.from_user.id] != ("data", "users"):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
     
     changes = {}
     for column in msg.text.split('_'):
         key, value = column.split(' = ')
         changes[key] = value
-    id = await state.get_data()
+    id = (await state.get_data())["id"]
     try:
-        update_user(id=id["id"], changes=changes)
+        update_user(id=id, changes=changes)
     except Exception:
         await log(msg, ('Команда /data - users', msg.text), bot, error=True)
         await msg.reply("Что-то пошло не так")
@@ -320,16 +307,11 @@ async def get_user(msg: Message, bot: Bot, state: FSMContext):
     return None
 
 
-@router_admin.message(RequestData.words)
-async def delete_word(msg: Message, bot: Bot, state: FSMContext):
+@router_admin.message(RequestAdmin.words)
+async def delete_word(msg: Message, bot: Bot):
     
     result = await autorisation(bot, msg=msg, need=LEVELS["data"])  # Авторизация пользователя
     if not result:
-        return None
-    
-    if last_massage[msg.from_user.id] != ("data", "words"):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
     
     word = msg.text

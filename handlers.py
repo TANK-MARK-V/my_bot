@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from random import sample
 
-from config import COMMANDS, info, LEVELS, autorisation, last_massage
+from config import COMMANDS, SHORTS, info, LEVELS, autorisation
 from users import find_user
 from logs import do_log as log
 
@@ -14,8 +14,6 @@ router = Router()
 #                                                                                   Старт
 @router.message(CommandStart())
 async def start_handler(msg: Message, bot: Bot):
-
-    last_massage[msg.from_user.id] = ("start", )
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
@@ -28,14 +26,13 @@ async def start_handler(msg: Message, bot: Bot):
 #                                                                           Информация о командах
 @router.message(Command("info"))
 async def information(msg: Message, command: CommandObject, bot: Bot):
-    
-    last_massage[msg.from_user.id] = ("info", )
 
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
         return None
     
     user = find_user(msg.from_user.id)
+
     if command.args and command.args in COMMANDS['__names__']:
         await log(msg, (f'Команда /info {command.args}',), bot)
         await msg.reply(info(command=command.args))
@@ -49,7 +46,9 @@ async def information(msg: Message, command: CommandObject, bot: Bot):
             await log(msg, (f'Пользователь обладает правами доступа уровня {user["access"]}, нужен {LEVELS[command.args]}', ), bot)
             await msg.reply(f"Вы не обладаете нужными правами доступа")
             return None
+    
     await log(msg, ('Команда /info',), bot)
+    await msg.reply("Список команд:\n" + SHORTS)
     builder = InlineKeyboardBuilder()
     for command in COMMANDS["__names__"]:
         builder.add(types.InlineKeyboardButton(
@@ -68,29 +67,32 @@ async def information(msg: Message, command: CommandObject, bot: Bot):
     if len(COMMANDS["__admin_names__"]) % admin:
         grid.append(1)
     builder.adjust(*grid)
-    await msg.reply("Выберете нужную команду", reply_markup=builder.as_markup())
+    await msg.answer("Выберете нужную команду", reply_markup=builder.as_markup())
     return None
 
 
 @router.callback_query(F.data.startswith("command_"))
 async def send_info(callback: types.CallbackQuery, bot: Bot):
 
-    last_massage[callback.from_user.id] = ("info", )
-
     result = await autorisation(bot, callback=callback)  # Авторизация пользователя
     if not result:
         return None
     
+    user = find_user(callback.from_user.id)
+
+    if callback.data.replace("command_", "") in LEVELS.keys() and user["access"] < LEVELS[callback.data.replace("command_", "")]:
+        await log(callback, (f'Пользователь обладает правами доступа уровня {user["access"]}, нужен {LEVELS[callback.data.replace("command_", "")]}', ), bot)
+        await callback.message.answer(f"Вы не обладаете нужными правами доступа")
+        await callback.answer()
+        return None
     await log(callback, (f'Выбран вариант {callback.data}',), bot)
-    await callback.message.answer(info(callback.data.replace("command_", '')))
+    await callback.message.answer(info(callback.data.replace("command_", "")))
     await callback.answer()
     return None
 
 
 @router.message(Command('cancel'))
 async def stop(msg: Message, bot: Bot):
-    
-    last_massage[msg.from_user.id] = ("cancel", )
 
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
@@ -103,8 +105,6 @@ async def stop(msg: Message, bot: Bot):
 #                                                                                   Рандомное число
 @router.message(Command('random'))
 async def start_handler(msg: Message, command: CommandObject, bot: Bot):
-
-    last_massage[msg.from_user.id] = ("random", )
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:

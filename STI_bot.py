@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters.callback_data import CallbackData
 
 from logs import do_log as log
-from config import autorisation, last_massage
+from config import autorisation
 
 from scripts.STI import sti
 router_sti = Router()
@@ -35,8 +35,6 @@ def bracket_check(test_string):
 
 @router_sti.message(Command("sti"))
 async def starting(msg: Message, command: CommandObject, bot: Bot):
-
-    last_massage[msg.from_user.id] = ("sti",)
 
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
@@ -68,8 +66,6 @@ async def starting(msg: Message, command: CommandObject, bot: Bot):
 
 @router_sti.callback_query(STICallback.filter())
 async def get_table(callback: types.CallbackQuery, callback_data: STICallback, bot: Bot):
-
-    last_massage[callback.from_user.id] = ("sti",)
 
     result = await autorisation(bot, callback=callback)  # Авторизация пользователя
     if not result:

@@ -2,7 +2,7 @@ from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
 
-from config import autorisation, last_massage
+from config import autorisation
 from logs import do_log as log
 
 import random
@@ -12,8 +12,6 @@ router_val = Router()
 
 @router_val.message(Command('valentine'))
 async def start_handler(msg: Message, bot: Bot):
-
-    last_massage[msg.from_user.id] = ("valentine",)
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:

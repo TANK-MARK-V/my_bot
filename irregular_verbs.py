@@ -11,8 +11,7 @@ from random import choice, sample
 
 from logs import do_log as log
 from users import set_score, get_score
-from config import autorisation, last_massage
-from free_handler import free_handler
+from config import autorisation
 from scripts.Verbs import kinds_of_verbs, read_verbs, INFO
 
 router_verbs = Router()
@@ -32,8 +31,6 @@ class RequestVerbs(StatesGroup):
 
 @router_verbs.message(Command("verbs"))
 async def starting(msg: Message, bot: Bot):
-
-    last_massage[msg.from_user.id] = ("verbs",)
 
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
@@ -59,7 +56,6 @@ async def get_table(callback: types.CallbackQuery, callback_data: VerbsCallback,
     await log(callback, (f"Выбран вариант {callback_data.mode}",), bot)
 
     if callback_data.mode == 1:
-        last_massage[callback.from_user.id] = ("verbs",)
         await log(callback, ('Команда /verbs вывела все глаголы',), bot)
         kinds = kinds_of_verbs()
         for key in kinds.keys():
@@ -72,7 +68,6 @@ async def get_table(callback: types.CallbackQuery, callback_data: VerbsCallback,
         return None
     
     elif callback_data.mode == 2:
-        last_massage[callback.from_user.id] = ("verbs", "test")
         verbs = read_verbs()
         await log(callback, ('Команда /verbs попросила ввести число глаголов',), bot)
         await callback.message.answer(f"Введите число глаголов, из которых будет составлен тест. Это может быть число от 1 до {len(verbs[0])}")
@@ -80,7 +75,6 @@ async def get_table(callback: types.CallbackQuery, callback_data: VerbsCallback,
         await callback.answer()
         return None
     
-    last_massage[callback.from_user.id] = ("verbs",)
     table = get_score('verbs')
     leest, nums = [], sorted(table.keys())[::-1]
     for i in range(len(nums)):
@@ -102,11 +96,6 @@ async def get_number(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
-        return None
-
-    if last_massage[msg.from_user.id] != ("verbs", "test"):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
 
     verbs = read_verbs()
@@ -135,11 +124,6 @@ async def check_answer(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
-        return None
-    
-    if last_massage[msg.from_user.id] != ("verbs", "test"):
-        await state.clear()
-        await free_handler(msg, bot)
         return None
 
     cur = RequestVerbs.data[msg.from_user.id]['cur']

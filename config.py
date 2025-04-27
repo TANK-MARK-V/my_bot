@@ -38,7 +38,7 @@ COMMANDS = {
             'Поддерживает условие, когда одна команда не может повторяться больше двух раз подряд',
             'Чтобы ввести несколько чисел, нужно разделить их пробелом'],
     "atom": ['Решить задачу по физике',
-             'На данный момент может помочь найти энергию связи атома'],
+             'Просто введи команду и следуй инструкциям'],
 
     "encode": ['Закодировать введённые сообщения',
                'Символы "меньше" и "больше" удаляются из схемы (из-за правил вывода сообщений в чат)',
@@ -102,9 +102,7 @@ LEVELS = {
     "data": 5
 }
 
-
-"""
-info - Подробное описание всех команд
+SHORTS = """info - Подробное описание всех команд
 lolgen - Предложение из случайных слов
 add_word - Добавить слово, указав его часть речи
 get_words - Посмотреть все слова из базы данных lolgen
@@ -142,12 +140,13 @@ async def autorisation(bot, msg=None, callback=None, need=1) -> bool:
     answer = msg if msg else callback.message
     if need == 1:
         await log(info, ('Пользователь был заблокирован',), bot)
-        await answer.answer('Вы были заблокированы' + (("\n" + result["ban"]) if result["ban"] != "None" else ""))
-        return False
+        if result["access"] == 0:
+            await answer.answer('Вы были заблокированы' + (("\n" + result["ban"]) if result["ban"] != "None" else ""))
+            return False
+        else:
+            await answer.answer('Произошла ошибка авторизации')
+            return False
     
     await log(info, (f'Пользователь обладает правами доступа уровня {result["access"]}, нужен {need}',), bot)
     await answer.answer('Вы не обладаете нужными правами доступа')
     return False
-
-
-last_massage = {}

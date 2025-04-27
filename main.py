@@ -19,7 +19,7 @@ from ATOM import router_atom as atom
 
 # Развлекательные роутеры
 from lolgen_bot import router_lolgen as lolgen
-from coding import router_coding as coding
+from coding_bot import router_coding as coding
 from irregular_verbs import router_verbs as verbs
 from valent import router_val as val
 
