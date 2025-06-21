@@ -1,6 +1,7 @@
 from aiogram import types, F, Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command, CommandStart, CommandObject
+from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from random import sample
@@ -92,13 +93,14 @@ async def send_info(callback: types.CallbackQuery, bot: Bot):
 
 
 @router.message(Command('cancel'))
-async def stop(msg: Message, bot: Bot):
+async def stop(msg: Message, bot: Bot, state: FSMContext):
 
     result = await autorisation(bot, msg=msg)  # Авторизация пользователя
     if not result:
         return None
 
     await log(msg, ('Пользователь отменил команду',), bot)
+    await state.clear()
     return None
 
 
@@ -118,14 +120,14 @@ async def start_handler(msg: Message, command: CommandObject, bot: Bot):
             elif len(nums) == 1:
                 nums = (1, nums[0] + 1, 1)
         except Exception:
-            await log(msg, ('Команда /random не получила чисел', command.args), bot)
+            await log(msg, ('Команда /random не получила чисел: ' + command.args), bot)
             nums = (0, 2, 1)
     else:
         nums = (0, 2, 1)
     try:
         text = ', '.join(map(str, sorted(sample(range(*nums[:2]), k=nums[2]))))
     except Exception:
-        await log(msg, ('Команда /random получила некорректные данные',), bot)
+        await log(msg, ('Команда /random получила некорректные данные: ' + command.args), bot)
         await msg.reply('Некорректные данные')
         return None
     await log(msg, ('Команда /random',), bot)

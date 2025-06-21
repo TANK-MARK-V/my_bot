@@ -50,7 +50,7 @@ async def user_list(msg: Message, bot: Bot):
     
     text = []
     for line in get_user_list():
-        text.append(f"{line[0]} ~~~ @{line[1]} ~~~ {line[2]} ~~~ {line[3]}")
+        text.append(f"{line[0]} ~~~ {('@' + line[1]) if line[1] != line[0] else 'None'} ~~~ {line[2]} ~~~ {line[3]}")
     await log(msg, (f'/users - получена информация о пользователях', ), bot)
     await msg.reply('\n'.join(text))
     return None
@@ -271,14 +271,13 @@ async def get_id(msg: Message, bot: Bot, state: FSMContext):
     if not result:
         return None
     
-    print(msg.text)
     wanted = find_user(info=msg.text)
     if not wanted:
         await log(msg, (f'Пользователь некорректно ввёл информацию о пользователе:', msg.text), bot)
         await msg.reply(f"Некорректно введена информация о пользователе")
         return None
     await log(msg, ('Команда /data получила данные о пользователе', msg.text), bot)
-    await msg.reply('Введите изменения')
+    await msg.reply('Введите изменения. Доступны колонки "id", "username", "access", "ban"')
     await state.update_data(id=wanted['id'])
     await state.set_state(RequestAdmin.user)
     return None
@@ -292,9 +291,10 @@ async def get_user(msg: Message, bot: Bot, state: FSMContext):
         return None
     
     changes = {}
-    for column in msg.text.split('_'):
-        key, value = column.split(' = ')
-        changes[key] = value
+    for column in msg.text.split('\n'):
+        key, value = column.split(': ')
+        if key in ('id', 'username', 'access', 'ban'):
+            changes[key] = value
     id = (await state.get_data())["id"]
     try:
         update_user(id=id, changes=changes)
@@ -304,18 +304,21 @@ async def get_user(msg: Message, bot: Bot, state: FSMContext):
         return None
     await log(msg, ('Команда /data - users выполнила свою работу', msg.text), bot)
     await msg.reply('Данные о пользователе были успешно обновлены')
+    await state.clear()
     return None
 
 
 @router_admin.message(RequestAdmin.words)
-async def delete_word(msg: Message, bot: Bot):
+async def delete_word(msg: Message, bot: Bot, state: FSMContext):
     
     result = await autorisation(bot, msg=msg, need=LEVELS["data"])  # Авторизация пользователя
     if not result:
         return None
     
-    word = msg.text
-    result = deleting(word)
-    await log(msg, ('Команда /data - words:', result + ": " + msg), bot)
-    await msg.reply(result)
+    words = msg.text.lower().split(' ')
+    for word in words:
+        result = deleting(word)
+        await log(msg, ('Команда /data - words:', result), bot)
+        await msg.reply(result)
+    await state.clear()
     return None

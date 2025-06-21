@@ -8,29 +8,13 @@ from logs import do_log as log
 from config import autorisation
 
 from scripts.STI import sti
+from scripts.help import bracket_check
 router_sti = Router()
 
 
 class STICallback(CallbackData, prefix='sti'):
     primer: str
     need: str
-
-
-def bracket_check(test_string):
-    open = ('(', '{', '[', '《')
-    closed = (')', '}', ']', '》')
-    leest = list()
-    for sym in test_string:
-        if sym in open:
-            leest.append(sym)
-        elif sym in closed:
-            if len(leest) == 0:
-                return False
-            elif open[closed.index(sym)] == leest[len(leest) - 1]:
-                leest.remove(open[closed.index(sym)])
-    if len(leest) != 0:
-        return False
-    return True
 
 
 @router_sti.message(Command("sti"))

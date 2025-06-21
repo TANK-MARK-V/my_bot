@@ -18,7 +18,7 @@ def make_user(msg):
     if str(msg.from_user.id) not in ids:  # Пользователя нет в базе данных
         cur.execute(f"INSERT INTO users (id, username)" +
                     f"VALUES ('{msg.from_user.id}', '{msg.from_user.username if msg.from_user.username != 'None' else msg.from_user.id}')").fetchall()
-        result = ('Добавлен новый пользователь:', f'{msg.from_user.id}, {msg.from_user.username}, {msg.from_user.full_name}')
+        result = ('Добавлен новый пользователь:', f'{msg.from_user.id}, {msg.from_user.username}, {msg.from_user.full_name.replace("<", "").replace(">", "")}')
 
     elif msg.from_user.username not in usernames and (str(msg.from_user.id) not in usernames or msg.from_user.username != None):  # Пользователь изменил свой username
         name = str(msg.from_user.id) if msg.from_user.username == None else msg.from_user.username  # Если у пользователя нет username, то будет использоваться id
