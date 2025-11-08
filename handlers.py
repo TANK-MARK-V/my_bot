@@ -4,11 +4,15 @@ from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+
+from aiogram.fsm.context import FSMContext
+
 from random import sample
 
 from config import COMMANDS, SHORTS, info, LEVELS, autorisation
 from users import find_user
 from logs import do_log as log
+from scripts.help import numeral, to_ten, sft, get_RPN
 
 router = Router()
 
@@ -51,15 +55,19 @@ async def information(msg: Message, command: CommandObject, bot: Bot):
     await log(msg, ('Команда /info',), bot)
     await msg.reply("Список команд:\n" + SHORTS)
     builder = InlineKeyboardBuilder()
+
     for command in COMMANDS["__names__"]:
-        builder.add(types.InlineKeyboardButton(
-            text=f'/{command}',
-            callback_data=f'command_{command}'))
+        if user["access"] >= LEVELS[command]:
+            builder.add(types.InlineKeyboardButton(
+                text=f'/{command}',
+                callback_data=f'command_{command}'))
+
     for command in COMMANDS["__admin_names__"]:
         if user["access"] >= LEVELS[command]:
             builder.add(types.InlineKeyboardButton(
                 text=f'/{command}',
                 callback_data=f'command_{command}'))
+
     normal, admin = 3, 2
     grid = [normal for _ in range(len(COMMANDS["__names__"]) // normal)]
     if len(COMMANDS["__names__"]) % normal:
@@ -120,16 +128,96 @@ async def start_handler(msg: Message, command: CommandObject, bot: Bot):
             elif len(nums) == 1:
                 nums = (1, nums[0] + 1, 1)
         except Exception:
-            await log(msg, ('Команда /random не получила чисел: ' + command.args), bot)
+            await log(msg, ('Команда /random не получила чисел: ' + command.args, ), bot)
             nums = (0, 2, 1)
     else:
         nums = (0, 2, 1)
     try:
         text = ', '.join(map(str, sorted(sample(range(*nums[:2]), k=nums[2]))))
     except Exception:
-        await log(msg, ('Команда /random получила некорректные данные: ' + command.args), bot)
+        await log(msg, ('Команда /random получила некорректные данные: ' + command.args, ), bot)
         await msg.reply('Некорректные данные')
         return None
     await log(msg, ('Команда /random',), bot)
     await msg.reply(text)
     return None
+
+
+#                                                                               Перевод в другую СС
+
+@router.message(Command('numeral'))
+async def start_handler(msg: Message, command: CommandObject, bot: Bot):
+    
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
+    
+    args = command.args.split(' ') if command.args else []
+
+    if len(args) < 2:
+        await log(msg, ('Команда /numeral получила меньше двух аргументов',), bot)
+        await msg.reply("Нужно ввести число и его систему счисления")
+        return None
+    elif len(args) == 2:
+        if args[1] in ('double', 'float'):
+            try:
+                num, use = float(args[0].replace(',', '.')), args[1]
+                res = sft(num, use)
+                if not res[0]:
+                    await log(msg, ('Команда /numeral могла допустить ошибку',), bot)
+                    await msg.reply("Извини, произошла непредвиденная ошибка - напиши @markusha_v3")
+                    return None
+                line_1, line_2 = res[:4], hex(int(res[:4], 2))[2:].upper()
+                for i in range(4, len(res), 4):
+                    line_1 += '.' + res[i:i + 4]
+                    line_2 += (' ' if i != 0 and (i // 4) % 2 == 0 else '') + hex(int(res[i:i + 4], 2))[2:].upper()
+                await log(msg, (f'Команда /numeral перевела число в {use}', ), bot)
+                await msg.reply("bin: " + line_1 + '\nhex: ' + line_2)
+                return None
+            except Exception as e:
+                await log(msg, ('Команда /numeral получила некорректные аргументы', e), bot)
+                await msg.reply("Нужно ввести число и его систему счисления")
+                return None
+        try:
+            res = numeral(int(args[0]), int(args[1]))
+        except Exception:
+            await log(msg, ('Команда /numeral получила некорректные аргументы',), bot)
+            await msg.reply("Нужно ввести число и его систему счисления")
+            return None
+    else:
+        try:
+            res = str(to_ten(args[0], int(args[1])))
+            if args[2] != '10':
+                res = numeral(int(res), int(args[2]))
+        except Exception:
+            await log(msg, ('Команда /numeral получила некорректные аргументы',), bot)
+            await msg.reply("Нужно ввести число и его систему счисления")
+            return None
+    await log(msg, ('Команда /numeral завершила свою работу',
+                    'Запрос:' + command.args, 'Ответ' + res), bot)
+    await msg.reply(res)
+    return None
+
+
+@router.message(Command('post'))
+async def start_handler(msg: Message, command: CommandObject, bot: Bot):
+    
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
+
+    if command.args:
+        try:
+            text = msg.text.replace("/post ", '').replace("(", '( ').replace(")", ' )').replace("  ", ' ').split(' ')
+            output = ' '.join(get_RPN(text))
+        except Exception:
+            await log(msg, ('Команда /post получила некорректное выражение ' + command.args, ), bot)
+            await msg.reply('Некорректные данные /post')
+            return None
+        await log(msg, ('Команда /post завершила работу',), bot)
+        await msg.reply(output)
+        return None
+    else:
+        await log(msg, ('Команда /post не получила выражение ' + command.args, ), bot)
+        await msg.reply('Нужно ввести выражение')
+        return None
