@@ -1,6 +1,6 @@
 from aiogram import Router, Bot
 from aiogram.types import Message
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
@@ -19,9 +19,9 @@ class RequestCoding(StatesGroup):
 
 @router_coding.message(Command("encode"))
 @router_coding.message(Command("decode"))
-async def coding(msg: Message, bot: Bot, state: FSMContext):
+async def get_mode(msg: Message, bot: Bot, state: FSMContext):
 
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    result = await autorisation(bot, msg=msg, need=2)  # Авторизация пользователя
     if not result:
         return None
     
@@ -44,7 +44,7 @@ async def coding(msg: Message, bot: Bot, state: FSMContext):
 @router_coding.message(RequestCoding.mode)
 async def coding(msg: Message, bot: Bot, state: FSMContext):
 
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    result = await autorisation(bot, msg=msg, need=2)  # Авторизация пользователя
     if not result:
         return None
 
@@ -74,4 +74,29 @@ async def coding(msg: Message, bot: Bot, state: FSMContext):
             return None
     await log(msg, (f'Команда /{mode} выполнила свою работу:', text), bot)
     await msg.reply(out)
+    return None
+
+
+@router_coding.message(Command('change'))
+async def start_handler(msg: Message, command: CommandObject, bot: Bot):
+    
+    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
+    if not result:
+        return None
+
+    if not command.args:
+        await log(msg, ('Команда /change не получила данные', ), bot)
+        await msg.reply('Некорректные данные')
+        return None
+    coded = encode(command.args).split(':')
+    for i in range(len(coded)):
+        cymbol = coded[i]
+        if len(cymbol) != 3:
+            continue
+        left = bin(int(cymbol[0], 16))[2:].rjust(4, '0')
+        left = str(int(not int(left[0]))) + left[1:]
+        coded[i] = hex(int(left, 2))[2:] + cymbol[1:]
+    decoded = decode(':'.join(coded))
+    await log(msg, ('Команда /change поменяла раскладку', decoded), bot)
+    await msg.reply(decoded)
     return None
