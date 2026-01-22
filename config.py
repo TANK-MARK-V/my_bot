@@ -1,16 +1,12 @@
-from users import make_user, find_user
-from logs import do_log as log
-
-
 with open("data/token.txt", 'r', encoding="UTF-8") as file:
     BOT_TOKEN = file.readline()  # Токен бота
+
 
 COMMANDS = {
     "__names__": ["lolgen", "add_word", "get_words",
                   "sti", "evo", "atom",
-                  "verbs", "valentine", "random",
-                  "cancel", "change", "numeral",
-                  "post"],
+                  "verbs", "valentine", "post",
+                  "cancel", "change", "numeral"],
     
 
     "lolgen": ['Предложение из случайных слов по заданной схеме',
@@ -45,13 +41,6 @@ COMMANDS = {
               'Можете подтянуть знания при помощи удобного распределения глаголов и их форм и тут же проверить свои знания, соревнуясь с другими пользователями'],
     "valentine": ['Получить валентинку',],
 
-    "random": ['Рандомайзер',
-               'Можно указать до трёх чисел:',
-               '    "random" - 0 или 1',
-               '    "random n" - случайное число от 1 до n включительно',
-               '    "random s n" - случайное число от s до n включительно',
-               '    "random s n m" - m случайных чисел от s до n'],
-
     "cancel": ['Остановить выполнение команды',
                'Например, сбор информации atom или декодирование decode',],
     "encode": ['Закодировать введённые сообщения',
@@ -73,19 +62,10 @@ COMMANDS = {
     
 
 
-    "__admin_names__": ["encode", "decode", "logs", "errors", "users", "chat", "ban", "data"],
+    "__admin_names__": ["encode", "decode", "logs", "users", "chat", "ban", "data"],
 
 
-    "logs": ['Посмотреть сегодняшние логи указанного пользователя',
-             'username или Id пользователя указывается после команды:',
-             '    "logs *username или Id пользователя*"',
-             'Можно получить логи по дате, указанной по формату "гг-мм.дд" через пробел от username-а или Id пользователя:',
-             '    "logs *username или Id пользователя* *дата*"'],
-    "errors": ['Посмотреть сегодняшние ошибки указанного пользователя',
-               'username или Id пользователя указывается после команды:',
-               '    "errors *username или Id пользователя*"',
-               'Можно получить ошибки по дате, указанной по формату "гг-мм.дд" через пробел от username-а или Id пользователя:',
-               '    "errors *username или Id пользователя* *дата*"'],
+    "logs": ['Посмотреть сегодняшние логи указанного пользователя',],
 
     "users": ['Получить полный список пользователей',
               'Список состоит из Id, username-а и уровня прав администратора пользователя, написанными через " ~~~ "'],
@@ -99,28 +79,10 @@ COMMANDS = {
              'Чтобы внести изменения в список неправильных глаголов, нужно вводить их через "_", разделяя формы при помощи "-"',
              'Чтобы изменить информацию о пользователе, нужно вводить название колонки и новое значение через ": ", каждое изменение вводится с новой строки',
              'Чтобы удалить слова в базе данных lolgen, нужно ввести слово']
-    
-
 }
 
 
 LEVELS = {
-    "info": 1,
-    "lolgen": 1,
-    "add_word": 1,
-    "get_words": 1,
-    "sti": 1,
-    "evo": 1,
-    "atom": 1,
-    "verbs": 1,
-    "valentine": 1,
-    "random": 1,
-    "atom": 1,
-    "cancel": 1,
-    "change": 1,
-    "numeral": 1,
-    "post": 1,
-
     "encode": 2,
     "decode": 2,
     "logs": 4,
@@ -131,6 +93,7 @@ LEVELS = {
     "data": 5
 }
 
+
 SHORTS = """info - Подробное описание всех команд
 lolgen - Предложение из случайных слов
 add_word - Добавить слово, указав его часть речи
@@ -140,54 +103,31 @@ evo - Решить задание с исполнителем
 atom - Решить задачу по физике
 verbs - Неправильные глаголы
 valentine - Получить валентинку
-random - Рандомайзер
 cancel - Остановить выполнение команды
 change - Поменять раскладку клавиатуры
 numeral - Перевод числа в другую систему счисления
 post - Перевести из инфиксной формы записи в постфиксную
 """
 
-"""
-info - Подробное описание всех команд
-cancel - Остановить выполнение команды
-post - Перевести из инфиксной формы записи в постфиксную
-"""
-
+# gift - Напиши новогоднее поздравление
 # gift - Поздравь меня
 # encode - Закодировать текст
 # decode - Раскодировать текст
 
+"""
+info - Подробное описание всех команд
+cancel - Остановить выполнение команды
+"""
 
 
-def info(command):
-    if command in COMMANDS.keys():
-        return '\n'.join(COMMANDS[command])
-
-
-async def autorisation(bot, msg=None, callback=None, need=1) -> bool:
-    info = msg if msg else (callback if callback else None)
-    if not info:
-        return None
-    result = make_user(info)
-    
-    if result:
-        await log(info, result, bot)
-
-    result = find_user(info.from_user.id)
-    
-    if result["access"] >= need:
-        return True
-    
-    answer = msg if msg else callback.message
-    if need == 1:
-        await log(info, ('Пользователь был заблокирован',), bot)
-        if result["access"] == 0:
-            await answer.answer('Вы были заблокированы' + (("\n" + result["ban"]) if result["ban"] != "None" else ""))
-            return False
-        else:
-            await answer.answer('Произошла ошибка авторизации')
-            return False
-    
-    await log(info, (f'Пользователь обладает правами доступа уровня {result["access"]}, нужен {need}',), bot)
-    await answer.answer('Вы не обладаете нужными правами доступа')
-    return False
+# from aiogram import F, Router, Bot
+# # Работа с сообщениями
+# from aiogram.types import Message, FSInputFile
+# from aiogram.filters import Command, CommandObject
+# # Работа кнопками
+# from aiogram.utils.keyboard import InlineKeyboardBuilder
+# from aiogram.types import CallbackQuery
+# from aiogram.filters.callback_data import CallbackData
+# # Работа с FSM
+# from aiogram.fsm.context import FSMContext
+# from aiogram.fsm.state import State, StatesGroup

@@ -1,17 +1,20 @@
 from aiogram import Router, Bot
+# Работа с сообщениями
 from aiogram.types import Message
 from aiogram.filters import Command
+# Работа с FSM
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from logs import do_log as log
-from config import autorisation
 
+from scripts.Logs import autorisation
 from scripts.EVO.EVO import EVO
-router_evo = Router()
 
 
-class RequestEVO(StatesGroup):
+router_evo = Router()  # Обработчик EVO
+
+
+class RequestEVO(StatesGroup):  # Сбор информации для выполнения алгоритма
     options = State()
     numbers = State()
     throughs = State()
@@ -20,157 +23,159 @@ class RequestEVO(StatesGroup):
 
 
 @router_evo.message(Command("evo"))
-async def starting(msg: Message, bot: Bot, state: FSMContext):
-
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
-    if not result:
+async def starting(msg: Message, bot: Bot, state: FSMContext):  # Запуск сбора информации для evo
+    user = await autorisation(info=msg, bot=bot)  # Авторизация пользователя
+    if not user:
         return None
     
-    await log(msg, ('Команда /evo начала свою работу', ), bot)
-    await msg.reply("Введите команды")
     await state.set_state(RequestEVO.options)
-    return None
+    await msg.reply("Введите команды")
+    await user.log("Command /evo: начало работы")
 
 
 @router_evo.message(RequestEVO.options)
-async def get_options(msg: Message, bot: Bot, state: FSMContext):
-    
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
-    if not result:
+async def get_options(msg: Message, bot: Bot, state: FSMContext):  # Ввод команд алгоритма
+    user = await autorisation(info=msg, bot=bot)  # Авторизация пользователя
+    if not user:
         return None
 
     options = msg.text.split('\n')
     if len(options) < 2:
-        await log(msg, ('Команда /evo получила меньше двух команд', msg.text), bot)
         await msg.reply("Нужно ввести не меньше двух команд")
+        await user.log("FSM /evo.options: пользователь ввёл меньше двух команд:", msg.text)
         return None
-    for opt in options:
-        if '*0' in opt.replace(' ', ''):
-            await log(msg, ('Команда /evo получила команду умножить на ноль', msg.text), bot)
+    
+    for i in range(len(options)):  # Проверим, не ввёл ли пользователь запрещённых команд
+        opt = options[i]
+        if '*0' in opt.replace(' ', ''):  # Умножение на 0
             await msg.reply("Эти команды не приводят к ответу")
+            await user.log("FSM /evo.options: пользователь ввёл команду умножить на ноль:", msg.text)
             return None
-        if '/0' in opt.replace(' ', ''):
-            await log(msg, ('Команда /evo получила команду поделить на ноль', msg.text), bot)
+        elif '/0' in opt.replace(' ', ''):  # Деление на 0
             await msg.reply("На ноль делить нельзя")
+            await user.log("FSM /evo.options: пользователь ввёл команду поделить на ноль:", msg.text)
             return None
-        if '=' in opt:
-            await log(msg, ('Команда /evo получила команду, содержащую "="', msg.text), bot)
+        elif '=' in opt:  # Это равенство, а не команда
             await msg.reply("Некорректные команды")
+            await user.log(text=("FSM /evo.options: пользователь ввёл команду, содержащую \"=\":", msg.text))
             return None
-    options = tuple(map(lambda x: ' ' + x if x[0] != ' ' else x, options))
-    await log(msg, ('Команда /evo получила команды', msg.text), bot)
-    await msg.reply("Введите начальное и конечное число")
+        else:
+            if opt[0] != ' ':  # Команда должна начинаться на пробел
+                opt = ' ' + opt
+
     await state.update_data(options=options)
     await state.set_state(RequestEVO.numbers)
-    return None
+    await msg.reply("Введите начальное и конечное число")
+    await user.log("FSM /evo: пользователь ввёл команды:", *msg.text.split('\n'))
 
 
 @router_evo.message(RequestEVO.numbers)
-async def get_numbers(msg: Message, bot: Bot, state: FSMContext):
-    
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
-    if not result:
+async def get_numbers(msg: Message, bot: Bot, state: FSMContext):  # Ввод начального и конечного числа
+    user = await autorisation(info=msg, bot=bot)  # Авторизация пользователя
+    if not user:
         return None
 
-    numbers = msg.text.split(' ')
-    if len(numbers) != 2:
-        await log(msg, ('Команда /evo получила не два числа', msg.text), bot)
-        await msg.reply("Нужно ввести только два числа: начальное и конечное")
-        return None
     try:
-        numbers = tuple(map(lambda x: int(x), numbers))
-    except Exception:
-        await log(msg, ('Команда /evo получила не числа', msg.text), bot)
+        numbers = msg.text.split(' ')
+        numbers = (int(numbers[0]), int(numbers[1]))  # Преобразовываем в int
+    except Exception as e:
         await msg.reply("Нужно ввести только два числа: начальное и конечное")
+        await user.log("FSM /evo.numbers: пользователь не ввёл два числа", msg.text, *repr(e).split("\n"))
         return None
-    await log(msg, ('Команда /evo получила числа', msg.text), bot)
-    await msg.reply('Введите числа, которые должна содержать траектория программы. Если таких чисел нет, введите "-"')
+    
     await state.update_data(numbers=numbers)
     await state.set_state(RequestEVO.throughs)
-    return None
+    await msg.reply("Введите числа, которые должна содержать траектория программы.\n"
+                    + "Если таких чисел нет, введите \"-\"")
+    await user.log("FSM /evo.numbers: пользователь ввёл числа", msg.text)
 
 
 @router_evo.message(RequestEVO.throughs)
-async def get_throughs(msg: Message, bot: Bot, state: FSMContext):
-    
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
-    if not result:
+async def get_throughs(msg: Message, bot: Bot, state: FSMContext):  # Ввод чисел, через которые проходит траектория программы
+    user = await autorisation(info=msg, bot=bot)  # Авторизация пользователя
+    if not user:
         return None
 
     throughs = None if msg.text == '-' else msg.text.split(' ')
     if throughs:
         try:
             throughs = tuple(map(lambda x: int(x), throughs))
-        except Exception:
-            await log(msg, ('Команда /evo получила не "обязательные" числа', msg.text), bot)
-            await msg.reply('Введите числа, которые должна содержать траектория программы. Если таких чисел нет, введите "-"')
+        except Exception as e:
+            await msg.reply("Введите числа, которые должна содержать траектория программы.\n"
+                            + "Если таких чисел нет, введите \"-\"")
+            await user.log("FSM /evo.throughs: пользователь не ввёл \"обязательные\" числа", msg.text, *repr(e).split("\n"))
             return None
-    await log(msg, ('Команда /evo получила "обязательные" числа', msg.text), bot)
-    await msg.reply('Введите числа, которые должна избегать траектория программы. '
-    + 'Если траектория программы не должна содержать цифру, начните сообщение с "+". '
-    + 'Если таких чисел нет, введите "-"')
+        
     await state.update_data(throughs=throughs)
     await state.set_state(RequestEVO.escapes)
-    return None
+    await msg.reply("Введите числа, которые должна избегать траектория программы.\n"
+            + "Если траектория программы не должна содержать цифру, начните сообщение с \"+\".\n"
+            + "Если таких чисел нет, введите \"-\"")
+    await user.log("FSM /evo.throughs: пользователь ввёл \"обязательные\" числа", msg.text)
 
 
 @router_evo.message(RequestEVO.escapes)
-async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
-    
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
-    if not result:
+async def get_escapes(msg: Message, bot: Bot, state: FSMContext):  # Ввод чисел, которые избегает траектория программы
+    user = await autorisation(info=msg, bot=bot)  # Авторизация пользователя
+    if not user:
         return None
 
-    if msg.text[0] == '+':
+    if msg.text[0] == '+':  # Траектория программы не должна содержать цифру
         escapes = set(msg.text[1:])
-        if len(escapes - set('0123456789')):
-            await log(msg, ('Команда /evo получила не "избегаемые" цифры', msg.text), bot)
-            await msg.reply('Введите числа или цифры, которые должна избегать траектория программы. Если таких чисел нет, введите "-"')
+        if len(escapes - set(map(str, range(10)))):
+            await msg.reply("Введите числа или цифры, которые должна избегать траектория программы.\n"
+                            + "Если таких чисел нет, введите \"-\"")
+            await user.log("FSM /evo.escapes: пользователь не ввёл \"избегаемые\" цифры", msg.text)
             return None
     else:
         escapes = None if msg.text == '-' else msg.text.split(' ')
         if escapes:
             try:
                 escapes = tuple(map(lambda x: int(x), escapes))
-            except Exception:
-                await log(msg, ('Команда /evo получила не "избегаемые" числа', msg.text), bot)
-                await msg.reply('Введите числа или цифры, которые должна избегать траектория программы. Если таких чисел нет, введите "-"')
+            except Exception as e:
+                await msg.reply("Введите числа или цифры, которые должна избегать траектория программы.\n"
+                                + "Если таких чисел нет, введите \"-\"")
+                await user.log("FSM /evo.escapes: пользователь не ввёл \"избегаемые\" числа", msg.text, *repr(e).split("\n"))
                 return None
-    await log(msg, ('Команда /evo получила "избегаемые" числа или цифры', msg.text), bot)
-    await msg.reply('Введите номер команды, которая не должна повторяться. Если такого условия нет, введите "-"')
+    
     await state.update_data(escapes=escapes)
     await state.set_state(RequestEVO.double)
-    return None
+    await msg.reply("Введите номер команды, которая не должна повторяться.\n"
+                    + "Если такого условия нет, введите \"-\"")
+    await user.log("FSM /evo.escapes: пользователь ввёл \"избегаемые\" числа или цифры", msg.text)
 
 
 @router_evo.message(RequestEVO.double)
-async def get_escapes(msg: Message, bot: Bot, state: FSMContext):
-    
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
-    if not result:
+async def get_escapes(msg: Message, bot: Bot, state: FSMContext):  # Ввод номеров команд, которые не повторяются
+    user = await autorisation(info=msg, bot=bot)  # Авторизация пользователя
+    if not user:
         return None
 
     double = 0 if msg.text == '-' else msg.text
-    data = await state.get_data()
-    options, numbers, throughs, escapes = data['options'], data['numbers'], data['throughs'], data['escapes']
+    data = await state.get_data()  # Получаем всю информацию с прошлых обработчиков
+    options, numbers, throughs, escapes = data["options"], data["numbers"], data["throughs"], data["escapes"]
+    
+    is_error = False
     try:
         double = int(double)
-    except Exception:
-        await log(msg, ('Команда /evo получила не номер команды', msg.text), bot)
-        await msg.reply('Введите номер команды, которая не должна повторяться. Если такого условия нет, введите "-"')
+    except Exception as e:
+        is_error = e
+    if is_error or double > len(options) or double < 0:
+        await msg.reply("Введите номер команды, которая не должна повторяться.\n"
+                    + "Если такого условия нет, введите \"-\"")
+        await user.log("FSM /evo.double: пользователь не ввёл номер команды", msg.text, *repr(is_error).split("\n"))
         return None
-    if double > len(options) or double < 0:
-        await log(msg, ('Команда /evo получила номер несуществующей команды', msg.text), bot)
-        await msg.reply('Введите номер команды, которая не должна повторяться. Если такого условия нет, введите "-"')
-        return None
-    await log(msg, ('Команда /evo получила номер команды', msg.text), bot)
-    try:
+    
+    await user.log("FSM /evo.double: пользователь ввёл номер команды", msg.text)
+    try:  # Пробуем выполнить запрос
         out = str(EVO(options, through=throughs, escape=escapes, inverse=numbers[0] > numbers[1], double=double).evo(numbers[0], numbers[1]))
     except Exception as e:
-        await log(msg, ('Команда /evo:', f'ОШИБКА - {e}'), bot, error=True)
         await msg.reply("Что-то пошло не так")
-        return None
-    await log(msg, ('Команда /evo выполнила свою работу', ), bot)
-    await msg.reply(out)
-    await state.clear()
-    return None
+        await user.log(text=("Script /evo: произошла ошибка:", *repr(e).split("\n"),
+                             "Запрос: ", f"options - {options}", f"numbers - {numbers}",
+                             f"throughs - {throughs}", f"escapes - {escapes}", f"double - {double}"), folder="errors")
+    else:
+        await msg.reply(out)
+        await user.log("Command /evo: конец работы")
+    finally:
+        await state.clear()

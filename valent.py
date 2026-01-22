@@ -1,23 +1,16 @@
 from aiogram import Router, Bot
+# Работа с сообщениями
 from aiogram.types import Message
 from aiogram.filters import Command
 
-from config import autorisation
-from logs import do_log as log
 
 import random
 
-router_val = Router()
+
+from scripts.Logs import autorisation
 
 
-@router_val.message(Command('valentine'))
-async def start_handler(msg: Message, bot: Bot):
-    
-    result = await autorisation(bot, msg=msg)  # Авторизация пользователя
-    if not result:
-        return None
-
-    selebr = random.choice(["ты — мой личный сорт счастья! С Днём святого Валентина!",
+WORDS = ["ты — мой личный сорт счастья! С Днём святого Валентина!",
             "влюбляться в тебя — моё любимое занятие. С праздником!",
             "ты — мой лучший подарок судьбы. С 14 февраля!",
             "моё сердце бьётся только для тебя. С Днём всех влюблённых!",
@@ -29,9 +22,18 @@ async def start_handler(msg: Message, bot: Bot):
             "просто спасибо, что ты есть. С Днём святого Валентина!",
             "ты как последний урок в пятницу, всегда жду с нетерпением. С 14 февраля!",
             "ты как пятерка по очень сложному предмету, даришь невероятные эмоции. С праздником!",
-            "познакомиться с тобой это как урвать последнюю вкусную булочку в столовой. С Днём святого Валентина!"])
+            "познакомиться с тобой это как урвать последнюю вкусную булочку в столовой. С Днём святого Валентина!"]
 
-    personal = f'{msg.from_user.first_name}, {selebr}'
-    await log(msg, ('команда /valentine', personal), bot)
-    await msg.answer(personal)
-    return None
+
+router_val = Router()  # Обработчик команды valentine
+
+@router_val.message(Command("valentine"))
+async def valentine(msg: Message, bot: Bot):  # Получение валентинок
+    user = await autorisation(info=msg, bot=bot)  # Авторизация пользователя
+    if not user:
+        return None
+
+    selebr = random.choice(WORDS)
+    personal = f"{msg.from_user.first_name}, {selebr}"
+    await msg.reply(personal)
+    await user.log("Command /valentine: пользователь получил валентику", personal)

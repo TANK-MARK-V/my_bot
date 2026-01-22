@@ -8,11 +8,12 @@ import config
 
 
 # Основные роутеры
-from handlers import router
+from base_handlers import base_router as base
 from admin import router_admin as admin
 from free_handler import free_router as free
 
 # Роутеры для решения задач
+from info_stuff import info_router as info
 from STI_bot import router_sti as sti
 from EVO_bot import router_evo as evo
 from ATOM import router_atom as atom
@@ -24,8 +25,8 @@ from irregular_verbs import router_verbs as verbs
 from valent import router_val as val
 
 
-ROUTERS = [router, admin]  # Основные роутеры
-ROUTERS += [lolgen, coding, val, sti]  # Обычные роутеры
+ROUTERS = [base, admin]  # Основные роутеры
+ROUTERS += [info, lolgen, val, sti, coding]  # Развлекательные роутеры и решение задач
 ROUTERS += [evo, atom, verbs]  # Роутеры, которые имеют FSM
 ROUTERS += [free,]  # Обработчик пустых сообщений
 
